@@ -1,0 +1,1867 @@
+<!DOCTYPE html>
+<html>
+<head>
+        <title>nbplayer — Jupyter Notebook Player</title>
+        <meta charset="utf-8">
+        <!-- Bootstrap CSS -->
+        <meta name="viewport" content="initial-scale=1">
+        <style>/* BASICS */
+
+.CodeMirror {
+  /* Set height, width, borders, and global font properties here */
+  font-family: monospace;
+  height: 300px;
+  color: black;
+  direction: ltr;
+}
+
+/* PADDING */
+
+.CodeMirror-lines {
+  padding: 4px 0; /* Vertical padding around content */
+}
+.CodeMirror pre.CodeMirror-line,
+.CodeMirror pre.CodeMirror-line-like {
+  padding: 0 4px; /* Horizontal padding of content */
+}
+
+.CodeMirror-scrollbar-filler, .CodeMirror-gutter-filler {
+  background-color: white; /* The little square between H and V scrollbars */
+}
+
+/* GUTTER */
+
+.CodeMirror-gutters {
+  border-right: 1px solid #ddd;
+  background-color: #f7f7f7;
+  white-space: nowrap;
+}
+.CodeMirror-linenumbers {}
+.CodeMirror-linenumber {
+  padding: 0 3px 0 5px;
+  min-width: 20px;
+  text-align: right;
+  color: #999;
+  white-space: nowrap;
+}
+
+.CodeMirror-guttermarker { color: black; }
+.CodeMirror-guttermarker-subtle { color: #999; }
+
+/* CURSOR */
+
+.CodeMirror-cursor {
+  border-left: 1px solid black;
+  border-right: none;
+  width: 0;
+}
+/* Shown when moving in bi-directional text */
+.CodeMirror div.CodeMirror-secondarycursor {
+  border-left: 1px solid silver;
+}
+.cm-fat-cursor .CodeMirror-cursor {
+  width: auto;
+  border: 0 !important;
+  background: #7e7;
+}
+.cm-fat-cursor div.CodeMirror-cursors {
+  z-index: 1;
+}
+.cm-fat-cursor .CodeMirror-line::selection,
+.cm-fat-cursor .CodeMirror-line > span::selection, 
+.cm-fat-cursor .CodeMirror-line > span > span::selection { background: transparent; }
+.cm-fat-cursor .CodeMirror-line::-moz-selection,
+.cm-fat-cursor .CodeMirror-line > span::-moz-selection,
+.cm-fat-cursor .CodeMirror-line > span > span::-moz-selection { background: transparent; }
+.cm-fat-cursor { caret-color: transparent; }
+@-moz-keyframes blink {
+  0% {}
+  50% { background-color: transparent; }
+  100% {}
+}
+@-webkit-keyframes blink {
+  0% {}
+  50% { background-color: transparent; }
+  100% {}
+}
+@keyframes blink {
+  0% {}
+  50% { background-color: transparent; }
+  100% {}
+}
+
+/* Can style cursor different in overwrite (non-insert) mode */
+.CodeMirror-overwrite .CodeMirror-cursor {}
+
+.cm-tab { display: inline-block; text-decoration: inherit; }
+
+.CodeMirror-rulers {
+  position: absolute;
+  left: 0; right: 0; top: -50px; bottom: 0;
+  overflow: hidden;
+}
+.CodeMirror-ruler {
+  border-left: 1px solid #ccc;
+  top: 0; bottom: 0;
+  position: absolute;
+}
+
+/* DEFAULT THEME */
+
+.cm-s-default .cm-header {color: blue;}
+.cm-s-default .cm-quote {color: #090;}
+.cm-negative {color: #d44;}
+.cm-positive {color: #292;}
+.cm-header, .cm-strong {font-weight: bold;}
+.cm-em {font-style: italic;}
+.cm-link {text-decoration: underline;}
+.cm-strikethrough {text-decoration: line-through;}
+
+.cm-s-default .cm-keyword {color: #708;}
+.cm-s-default .cm-atom {color: #219;}
+.cm-s-default .cm-number {color: #164;}
+.cm-s-default .cm-def {color: #00f;}
+.cm-s-default .cm-variable,
+.cm-s-default .cm-punctuation,
+.cm-s-default .cm-property,
+.cm-s-default .cm-operator {}
+.cm-s-default .cm-variable-2 {color: #05a;}
+.cm-s-default .cm-variable-3, .cm-s-default .cm-type {color: #085;}
+.cm-s-default .cm-comment {color: #a50;}
+.cm-s-default .cm-string {color: #a11;}
+.cm-s-default .cm-string-2 {color: #f50;}
+.cm-s-default .cm-meta {color: #555;}
+.cm-s-default .cm-qualifier {color: #555;}
+.cm-s-default .cm-builtin {color: #30a;}
+.cm-s-default .cm-bracket {color: #997;}
+.cm-s-default .cm-tag {color: #170;}
+.cm-s-default .cm-attribute {color: #00c;}
+.cm-s-default .cm-hr {color: #999;}
+.cm-s-default .cm-link {color: #00c;}
+
+.cm-s-default .cm-error {color: #f00;}
+.cm-invalidchar {color: #f00;}
+
+.CodeMirror-composing { border-bottom: 2px solid; }
+
+/* Default styles for common addons */
+
+div.CodeMirror span.CodeMirror-matchingbracket {color: #0b0;}
+div.CodeMirror span.CodeMirror-nonmatchingbracket {color: #a22;}
+.CodeMirror-matchingtag { background: rgba(255, 150, 0, .3); }
+.CodeMirror-activeline-background {background: #e8f2ff;}
+
+/* STOP */
+
+/* The rest of this file contains styles related to the mechanics of
+   the editor. You probably shouldn't touch them. */
+
+.CodeMirror {
+  position: relative;
+  overflow: hidden;
+  background: white;
+}
+
+.CodeMirror-scroll {
+  overflow: scroll !important; /* Things will break if this is overridden */
+  /* 50px is the magic margin used to hide the element's real scrollbars */
+  /* See overflow: hidden in .CodeMirror */
+  margin-bottom: -50px; margin-right: -50px;
+  padding-bottom: 50px;
+  height: 100%;
+  outline: none; /* Prevent dragging from highlighting the element */
+  position: relative;
+  z-index: 0;
+}
+.CodeMirror-sizer {
+  position: relative;
+  border-right: 50px solid transparent;
+}
+
+/* The fake, visible scrollbars. Used to force redraw during scrolling
+   before actual scrolling happens, thus preventing shaking and
+   flickering artifacts. */
+.CodeMirror-vscrollbar, .CodeMirror-hscrollbar, .CodeMirror-scrollbar-filler, .CodeMirror-gutter-filler {
+  position: absolute;
+  z-index: 6;
+  display: none;
+  outline: none;
+}
+.CodeMirror-vscrollbar {
+  right: 0; top: 0;
+  overflow-x: hidden;
+  overflow-y: scroll;
+}
+.CodeMirror-hscrollbar {
+  bottom: 0; left: 0;
+  overflow-y: hidden;
+  overflow-x: scroll;
+}
+.CodeMirror-scrollbar-filler {
+  right: 0; bottom: 0;
+}
+.CodeMirror-gutter-filler {
+  left: 0; bottom: 0;
+}
+
+.CodeMirror-gutters {
+  position: absolute; left: 0; top: 0;
+  min-height: 100%;
+  z-index: 3;
+}
+.CodeMirror-gutter {
+  white-space: normal;
+  height: 100%;
+  display: inline-block;
+  vertical-align: top;
+  margin-bottom: -50px;
+}
+.CodeMirror-gutter-wrapper {
+  position: absolute;
+  z-index: 4;
+  background: none !important;
+  border: none !important;
+}
+.CodeMirror-gutter-background {
+  position: absolute;
+  top: 0; bottom: 0;
+  z-index: 4;
+}
+.CodeMirror-gutter-elt {
+  position: absolute;
+  cursor: default;
+  z-index: 4;
+}
+.CodeMirror-gutter-wrapper ::selection { background-color: transparent }
+.CodeMirror-gutter-wrapper ::-moz-selection { background-color: transparent }
+
+.CodeMirror-lines {
+  cursor: text;
+  min-height: 1px; /* prevents collapsing before first draw */
+}
+.CodeMirror pre.CodeMirror-line,
+.CodeMirror pre.CodeMirror-line-like {
+  /* Reset some styles that the rest of the page might have set */
+  -moz-border-radius: 0; -webkit-border-radius: 0; border-radius: 0;
+  border-width: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: inherit;
+  margin: 0;
+  white-space: pre;
+  word-wrap: normal;
+  line-height: inherit;
+  color: inherit;
+  z-index: 2;
+  position: relative;
+  overflow: visible;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-variant-ligatures: contextual;
+  font-variant-ligatures: contextual;
+}
+.CodeMirror-wrap pre.CodeMirror-line,
+.CodeMirror-wrap pre.CodeMirror-line-like {
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  word-break: normal;
+}
+
+.CodeMirror-linebackground {
+  position: absolute;
+  left: 0; right: 0; top: 0; bottom: 0;
+  z-index: 0;
+}
+
+.CodeMirror-linewidget {
+  position: relative;
+  z-index: 2;
+  padding: 0.1px; /* Force widget margins to stay inside of the container */
+}
+
+.CodeMirror-widget {}
+
+.CodeMirror-rtl pre { direction: rtl; }
+
+.CodeMirror-code {
+  outline: none;
+}
+
+/* Force content-box sizing for the elements where we expect it */
+.CodeMirror-scroll,
+.CodeMirror-sizer,
+.CodeMirror-gutter,
+.CodeMirror-gutters,
+.CodeMirror-linenumber {
+  -moz-box-sizing: content-box;
+  box-sizing: content-box;
+}
+
+.CodeMirror-measure {
+  position: absolute;
+  width: 100%;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+}
+
+.CodeMirror-cursor {
+  position: absolute;
+  pointer-events: none;
+}
+.CodeMirror-measure pre { position: static; }
+
+div.CodeMirror-cursors {
+  visibility: hidden;
+  position: relative;
+  z-index: 3;
+}
+div.CodeMirror-dragcursors {
+  visibility: visible;
+}
+
+.CodeMirror-focused div.CodeMirror-cursors {
+  visibility: visible;
+}
+
+.CodeMirror-selected { background: #d9d9d9; }
+.CodeMirror-focused .CodeMirror-selected { background: #d7d4f0; }
+.CodeMirror-crosshair { cursor: crosshair; }
+.CodeMirror-line::selection, .CodeMirror-line > span::selection, .CodeMirror-line > span > span::selection { background: #d7d4f0; }
+.CodeMirror-line::-moz-selection, .CodeMirror-line > span::-moz-selection, .CodeMirror-line > span > span::-moz-selection { background: #d7d4f0; }
+
+.cm-searching {
+  background-color: #ffa;
+  background-color: rgba(255, 255, 0, .4);
+}
+
+/* Used to force a border model for a node */
+.cm-force-border { padding-right: .1px; }
+
+@media print {
+  /* Hide the cursor when printing */
+  .CodeMirror div.CodeMirror-cursors {
+    visibility: hidden;
+  }
+}
+
+/* See issue #2901 */
+.cm-tab-wrap-hack:after { content: ''; }
+
+/* Help users use markselection to safely style text background */
+span.CodeMirror-selectedtext { background: none; }
+
+
+.CodeMirror-fullscreen {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  height: auto;
+  z-index: 9;
+}
+
+
+.CodeMirror-foldmarker {
+  color: blue;
+  text-shadow: #b9f 1px 1px 2px, #b9f -1px -1px 2px, #b9f 1px -1px 2px, #b9f -1px 1px 2px;
+  font-family: arial;
+  line-height: .3;
+  cursor: pointer;
+}
+.CodeMirror-foldgutter {
+  width: .7em;
+}
+.CodeMirror-foldgutter-open,
+.CodeMirror-foldgutter-folded {
+  cursor: pointer;
+}
+.CodeMirror-foldgutter-open:after {
+  content: "\25BE";
+}
+.CodeMirror-foldgutter-folded:after {
+  content: "\25B8";
+}
+
+
+.CodeMirror-hints {
+  position: absolute;
+  z-index: 10;
+  overflow: hidden;
+  list-style: none;
+
+  margin: 0;
+  padding: 2px;
+
+  -webkit-box-shadow: 2px 3px 5px rgba(0,0,0,.2);
+  -moz-box-shadow: 2px 3px 5px rgba(0,0,0,.2);
+  box-shadow: 2px 3px 5px rgba(0,0,0,.2);
+  border-radius: 3px;
+  border: 1px solid silver;
+
+  background: white;
+  font-size: 90%;
+  font-family: monospace;
+
+  max-height: 20em;
+  overflow-y: auto;
+}
+
+.CodeMirror-hint {
+  margin: 0;
+  padding: 0 4px;
+  border-radius: 2px;
+  white-space: pre;
+  color: black;
+  cursor: pointer;
+}
+
+li.CodeMirror-hint-active {
+  background: #08f;
+  color: white;
+}
+
+
+/*! jQuery UI - v1.12.0 - 2016-07-08
+* http://jqueryui.com
+* Includes: core.css, accordion.css, autocomplete.css, menu.css, button.css, controlgroup.css, checkboxradio.css, datepicker.css, dialog.css, draggable.css, resizable.css, progressbar.css, selectable.css, selectmenu.css, slider.css, sortable.css, spinner.css, tabs.css, tooltip.css, theme.css
+* To view and modify this theme, visit http://jqueryui.com/themeroller/?ffDefault=Verdana%2CArial%2Csans-serif&fwDefault=normal&fsDefault=1.1em&cornerRadius=4px&bgColorHeader=cccccc&bgTextureHeader=highlight_soft&bgImgOpacityHeader=75&borderColorHeader=aaaaaa&fcHeader=222222&iconColorHeader=222222&bgColorContent=ffffff&bgTextureContent=flat&bgImgOpacityContent=75&borderColorContent=aaaaaa&fcContent=222222&iconColorContent=222222&bgColorDefault=e6e6e6&bgTextureDefault=glass&bgImgOpacityDefault=75&borderColorDefault=d3d3d3&fcDefault=555555&iconColorDefault=888888&bgColorHover=dadada&bgTextureHover=glass&bgImgOpacityHover=75&borderColorHover=999999&fcHover=212121&iconColorHover=454545&bgColorActive=ffffff&bgTextureActive=glass&bgImgOpacityActive=65&borderColorActive=aaaaaa&fcActive=212121&iconColorActive=454545&bgColorHighlight=fbf9ee&bgTextureHighlight=glass&bgImgOpacityHighlight=55&borderColorHighlight=fcefa1&fcHighlight=363636&iconColorHighlight=2e83ff&bgColorError=fef1ec&bgTextureError=glass&bgImgOpacityError=95&borderColorError=cd0a0a&fcError=cd0a0a&iconColorError=cd0a0a&bgColorOverlay=aaaaaa&bgTextureOverlay=flat&bgImgOpacityOverlay=0&opacityOverlay=30&bgColorShadow=aaaaaa&bgTextureShadow=flat&bgImgOpacityShadow=0&opacityShadow=30&thicknessShadow=8px&offsetTopShadow=-8px&offsetLeftShadow=-8px&cornerRadiusShadow=8px
+* Copyright jQuery Foundation and other contributors; Licensed MIT */
+
+.ui-helper-hidden{display:none}.ui-helper-hidden-accessible{border:0;clip:rect(0 0 0 0);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px}.ui-helper-reset{margin:0;padding:0;border:0;outline:0;line-height:1.3;text-decoration:none;font-size:100%;list-style:none}.ui-helper-clearfix:before,.ui-helper-clearfix:after{content:"";display:table;border-collapse:collapse}.ui-helper-clearfix:after{clear:both}.ui-helper-zfix{width:100%;height:100%;top:0;left:0;position:absolute;opacity:0;filter:Alpha(Opacity=0)}.ui-front{z-index:100}.ui-state-disabled{cursor:default!important;pointer-events:none}.ui-icon{display:inline-block;vertical-align:middle;margin-top:-.25em;position:relative;text-indent:-99999px;overflow:hidden;background-repeat:no-repeat}.ui-widget-icon-block{left:50%;margin-left:-8px;display:block}.ui-widget-overlay{position:fixed;top:0;left:0;width:100%;height:100%}.ui-accordion .ui-accordion-header{display:block;cursor:pointer;position:relative;margin:2px 0 0 0;padding:.5em .5em .5em .7em;font-size:100%}.ui-accordion .ui-accordion-content{padding:1em 2.2em;border-top:0;overflow:auto}.ui-autocomplete{position:absolute;top:0;left:0;cursor:default}.ui-menu{list-style:none;padding:0;margin:0;display:block;outline:0}.ui-menu .ui-menu{position:absolute}.ui-menu .ui-menu-item{margin:0;cursor:pointer;list-style-image:url("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7")}.ui-menu .ui-menu-item-wrapper{position:relative;padding:3px 1em 3px .4em}.ui-menu .ui-menu-divider{margin:5px 0;height:0;font-size:0;line-height:0;border-width:1px 0 0 0}.ui-menu .ui-state-focus,.ui-menu .ui-state-active{margin:-1px}.ui-menu-icons{position:relative}.ui-menu-icons .ui-menu-item-wrapper{padding-left:2em}.ui-menu .ui-icon{position:absolute;top:0;bottom:0;left:.2em;margin:auto 0}.ui-menu .ui-menu-icon{left:auto;right:0}.ui-button{padding:.4em 1em;display:inline-block;position:relative;line-height:normal;margin-right:.1em;cursor:pointer;vertical-align:middle;text-align:center;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;overflow:visible}.ui-button,.ui-button:link,.ui-button:visited,.ui-button:hover,.ui-button:active{text-decoration:none}.ui-button-icon-only{width:2em;box-sizing:border-box;text-indent:-9999px;white-space:nowrap}input.ui-button.ui-button-icon-only{text-indent:0}.ui-button-icon-only .ui-icon{position:absolute;top:50%;left:50%;margin-top:-8px;margin-left:-8px}.ui-button.ui-icon-notext .ui-icon{padding:0;width:2.1em;height:2.1em;text-indent:-9999px;white-space:nowrap}input.ui-button.ui-icon-notext .ui-icon{width:auto;height:auto;text-indent:0;white-space:normal;padding:.4em 1em}input.ui-button::-moz-focus-inner,button.ui-button::-moz-focus-inner{border:0;padding:0}.ui-controlgroup{vertical-align:middle;display:inline-block}.ui-controlgroup > .ui-controlgroup-item{float:left;margin-left:0;margin-right:0}.ui-controlgroup > .ui-controlgroup-item:focus,.ui-controlgroup > .ui-controlgroup-item.ui-visual-focus{z-index:9999}.ui-controlgroup-vertical > .ui-controlgroup-item{display:block;float:none;width:100%;margin-top:0;margin-bottom:0;text-align:left}.ui-controlgroup-vertical .ui-controlgroup-item{box-sizing:border-box}.ui-controlgroup .ui-controlgroup-label{padding:.4em 1em}.ui-controlgroup .ui-controlgroup-label span{font-size:80%}.ui-controlgroup-horizontal .ui-controlgroup-label + .ui-controlgroup-item{border-left:none}.ui-controlgroup-vertical .ui-controlgroup-label + .ui-controlgroup-item{border-top:none}.ui-controlgroup-horizontal .ui-controlgroup-label.ui-widget-content{border-right:none}.ui-controlgroup-vertical .ui-controlgroup-label.ui-widget-content{border-bottom:none}.ui-controlgroup-vertical .ui-spinner-input{width:75%;width:calc( 100% - 2.4em )}.ui-controlgroup-vertical .ui-spinner .ui-spinner-up{border-top-style:solid}.ui-checkboxradio-label .ui-icon-background{box-shadow:inset 1px 1px 1px #ccc;border-radius:.12em;border:none}.ui-checkboxradio-radio-label .ui-icon-background{width:16px;height:16px;border-radius:1em;overflow:visible;border:none}.ui-checkboxradio-radio-label.ui-checkboxradio-checked .ui-icon,.ui-checkboxradio-radio-label.ui-checkboxradio-checked:hover .ui-icon{background-image:none;width:8px;height:8px;border-width:4px;border-style:solid}.ui-checkboxradio-disabled{pointer-events:none}.ui-datepicker{width:17em;padding:.2em .2em 0;display:none}.ui-datepicker .ui-datepicker-header{position:relative;padding:.2em 0}.ui-datepicker .ui-datepicker-prev,.ui-datepicker .ui-datepicker-next{position:absolute;top:2px;width:1.8em;height:1.8em}.ui-datepicker .ui-datepicker-prev-hover,.ui-datepicker .ui-datepicker-next-hover{top:1px}.ui-datepicker .ui-datepicker-prev{left:2px}.ui-datepicker .ui-datepicker-next{right:2px}.ui-datepicker .ui-datepicker-prev-hover{left:1px}.ui-datepicker .ui-datepicker-next-hover{right:1px}.ui-datepicker .ui-datepicker-prev span,.ui-datepicker .ui-datepicker-next span{display:block;position:absolute;left:50%;margin-left:-8px;top:50%;margin-top:-8px}.ui-datepicker .ui-datepicker-title{margin:0 2.3em;line-height:1.8em;text-align:center}.ui-datepicker .ui-datepicker-title select{font-size:1em;margin:1px 0}.ui-datepicker select.ui-datepicker-month,.ui-datepicker select.ui-datepicker-year{width:45%}.ui-datepicker table{width:100%;font-size:.9em;border-collapse:collapse;margin:0 0 .4em}.ui-datepicker th{padding:.7em .3em;text-align:center;font-weight:bold;border:0}.ui-datepicker td{border:0;padding:1px}.ui-datepicker td span,.ui-datepicker td a{display:block;padding:.2em;text-align:right;text-decoration:none}.ui-datepicker .ui-datepicker-buttonpane{background-image:none;margin:.7em 0 0 0;padding:0 .2em;border-left:0;border-right:0;border-bottom:0}.ui-datepicker .ui-datepicker-buttonpane button{float:right;margin:.5em .2em .4em;cursor:pointer;padding:.2em .6em .3em .6em;width:auto;overflow:visible}.ui-datepicker .ui-datepicker-buttonpane button.ui-datepicker-current{float:left}.ui-datepicker.ui-datepicker-multi{width:auto}.ui-datepicker-multi .ui-datepicker-group{float:left}.ui-datepicker-multi .ui-datepicker-group table{width:95%;margin:0 auto .4em}.ui-datepicker-multi-2 .ui-datepicker-group{width:50%}.ui-datepicker-multi-3 .ui-datepicker-group{width:33.3%}.ui-datepicker-multi-4 .ui-datepicker-group{width:25%}.ui-datepicker-multi .ui-datepicker-group-last .ui-datepicker-header,.ui-datepicker-multi .ui-datepicker-group-middle .ui-datepicker-header{border-left-width:0}.ui-datepicker-multi .ui-datepicker-buttonpane{clear:left}.ui-datepicker-row-break{clear:both;width:100%;font-size:0}.ui-datepicker-rtl{direction:rtl}.ui-datepicker-rtl .ui-datepicker-prev{right:2px;left:auto}.ui-datepicker-rtl .ui-datepicker-next{left:2px;right:auto}.ui-datepicker-rtl .ui-datepicker-prev:hover{right:1px;left:auto}.ui-datepicker-rtl .ui-datepicker-next:hover{left:1px;right:auto}.ui-datepicker-rtl .ui-datepicker-buttonpane{clear:right}.ui-datepicker-rtl .ui-datepicker-buttonpane button{float:left}.ui-datepicker-rtl .ui-datepicker-buttonpane button.ui-datepicker-current,.ui-datepicker-rtl .ui-datepicker-group{float:right}.ui-datepicker-rtl .ui-datepicker-group-last .ui-datepicker-header,.ui-datepicker-rtl .ui-datepicker-group-middle .ui-datepicker-header{border-right-width:0;border-left-width:1px}.ui-datepicker .ui-icon{display:block;text-indent:-99999px;overflow:hidden;background-repeat:no-repeat;left:.5em;top:.3em}.ui-dialog{position:absolute;top:0;left:0;padding:.2em;outline:0}.ui-dialog .ui-dialog-titlebar{padding:.4em 1em;position:relative}.ui-dialog .ui-dialog-title{float:left;margin:.1em 0;white-space:nowrap;width:90%;overflow:hidden;text-overflow:ellipsis}.ui-dialog .ui-dialog-titlebar-close{position:absolute;right:.3em;top:50%;width:20px;margin:-10px 0 0 0;padding:1px;height:20px}.ui-dialog .ui-dialog-content{position:relative;border:0;padding:.5em 1em;background:none;overflow:auto}.ui-dialog .ui-dialog-buttonpane{text-align:left;border-width:1px 0 0 0;background-image:none;margin-top:.5em;padding:.3em 1em .5em .4em}.ui-dialog .ui-dialog-buttonpane .ui-dialog-buttonset{float:right}.ui-dialog .ui-dialog-buttonpane button{margin:.5em .4em .5em 0;cursor:pointer}.ui-dialog .ui-resizable-n{height:2px;top:0}.ui-dialog .ui-resizable-e{width:2px;right:0}.ui-dialog .ui-resizable-s{height:2px;bottom:0}.ui-dialog .ui-resizable-w{width:2px;left:0}.ui-dialog .ui-resizable-se,.ui-dialog .ui-resizable-sw,.ui-dialog .ui-resizable-ne,.ui-dialog .ui-resizable-nw{width:7px;height:7px}.ui-dialog .ui-resizable-se{right:0;bottom:0}.ui-dialog .ui-resizable-sw{left:0;bottom:0}.ui-dialog .ui-resizable-ne{right:0;top:0}.ui-dialog .ui-resizable-nw{left:0;top:0}.ui-draggable .ui-dialog-titlebar{cursor:move}.ui-draggable-handle{-ms-touch-action:none;touch-action:none}.ui-resizable{position:relative}.ui-resizable-handle{position:absolute;font-size:0.1px;display:block;-ms-touch-action:none;touch-action:none}.ui-resizable-disabled .ui-resizable-handle,.ui-resizable-autohide .ui-resizable-handle{display:none}.ui-resizable-n{cursor:n-resize;height:7px;width:100%;top:-5px;left:0}.ui-resizable-s{cursor:s-resize;height:7px;width:100%;bottom:-5px;left:0}.ui-resizable-e{cursor:e-resize;width:7px;right:-5px;top:0;height:100%}.ui-resizable-w{cursor:w-resize;width:7px;left:-5px;top:0;height:100%}.ui-resizable-se{cursor:se-resize;width:12px;height:12px;right:1px;bottom:1px}.ui-resizable-sw{cursor:sw-resize;width:9px;height:9px;left:-5px;bottom:-5px}.ui-resizable-nw{cursor:nw-resize;width:9px;height:9px;left:-5px;top:-5px}.ui-resizable-ne{cursor:ne-resize;width:9px;height:9px;right:-5px;top:-5px}.ui-progressbar{height:2em;text-align:left;overflow:hidden}.ui-progressbar .ui-progressbar-value{margin:-1px;height:100%}.ui-progressbar .ui-progressbar-overlay{background:url("data:image/gif;base64,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");height:100%;filter:alpha(opacity=25);opacity:0.25}.ui-progressbar-indeterminate .ui-progressbar-value{background-image:none}.ui-selectable{-ms-touch-action:none;touch-action:none}.ui-selectable-helper{position:absolute;z-index:100;border:1px dotted black}.ui-selectmenu-menu{padding:0;margin:0;position:absolute;top:0;left:0;display:none}.ui-selectmenu-menu .ui-menu{overflow:auto;overflow-x:hidden;padding-bottom:1px}.ui-selectmenu-menu .ui-menu .ui-selectmenu-optgroup{font-size:1em;font-weight:bold;line-height:1.5;padding:2px 0.4em;margin:0.5em 0 0 0;height:auto;border:0}.ui-selectmenu-open{display:block}.ui-selectmenu-text{display:block;margin-right:20px;overflow:hidden;text-overflow:ellipsis}.ui-selectmenu-button.ui-button{text-align:left;white-space:nowrap;width:14em}.ui-selectmenu-icon.ui-icon{float:right;margin-top:0}.ui-slider{position:relative;text-align:left}.ui-slider .ui-slider-handle{position:absolute;z-index:2;width:1.2em;height:1.2em;cursor:default;-ms-touch-action:none;touch-action:none}.ui-slider .ui-slider-range{position:absolute;z-index:1;font-size:.7em;display:block;border:0;background-position:0 0}.ui-slider.ui-state-disabled .ui-slider-handle,.ui-slider.ui-state-disabled .ui-slider-range{filter:inherit}.ui-slider-horizontal{height:.8em}.ui-slider-horizontal .ui-slider-handle{top:-.3em;margin-left:-.6em}.ui-slider-horizontal .ui-slider-range{top:0;height:100%}.ui-slider-horizontal .ui-slider-range-min{left:0}.ui-slider-horizontal .ui-slider-range-max{right:0}.ui-slider-vertical{width:.8em;height:100px}.ui-slider-vertical .ui-slider-handle{left:-.3em;margin-left:0;margin-bottom:-.6em}.ui-slider-vertical .ui-slider-range{left:0;width:100%}.ui-slider-vertical .ui-slider-range-min{bottom:0}.ui-slider-vertical .ui-slider-range-max{top:0}.ui-sortable-handle{-ms-touch-action:none;touch-action:none}.ui-spinner{position:relative;display:inline-block;overflow:hidden;padding:0;vertical-align:middle}.ui-spinner-input{border:none;background:none;color:inherit;padding:.222em 0;margin:.2em 0;vertical-align:middle;margin-left:.4em;margin-right:2em}.ui-spinner-button{width:1.6em;height:50%;font-size:.5em;padding:0;margin:0;text-align:center;position:absolute;cursor:default;display:block;overflow:hidden;right:0}.ui-spinner a.ui-spinner-button{border-top-style:none;border-bottom-style:none;border-right-style:none}.ui-spinner-up{top:0}.ui-spinner-down{bottom:0}.ui-tabs{position:relative;padding:.2em}.ui-tabs .ui-tabs-nav{margin:0;padding:.2em .2em 0}.ui-tabs .ui-tabs-nav li{list-style:none;float:left;position:relative;top:0;margin:1px .2em 0 0;border-bottom-width:0;padding:0;white-space:nowrap}.ui-tabs .ui-tabs-nav .ui-tabs-anchor{float:left;padding:.5em 1em;text-decoration:none}.ui-tabs .ui-tabs-nav li.ui-tabs-active{margin-bottom:-1px;padding-bottom:1px}.ui-tabs .ui-tabs-nav li.ui-tabs-active .ui-tabs-anchor,.ui-tabs .ui-tabs-nav li.ui-state-disabled .ui-tabs-anchor,.ui-tabs .ui-tabs-nav li.ui-tabs-loading .ui-tabs-anchor{cursor:text}.ui-tabs-collapsible .ui-tabs-nav li.ui-tabs-active .ui-tabs-anchor{cursor:pointer}.ui-tabs .ui-tabs-panel{display:block;border-width:0;padding:1em 1.4em;background:none}.ui-tooltip{padding:8px;position:absolute;z-index:9999;max-width:300px}body .ui-tooltip{border-width:2px}.ui-widget{font-family:Verdana,Arial,sans-serif;font-size:1.1em}.ui-widget .ui-widget{font-size:1em}.ui-widget input,.ui-widget select,.ui-widget textarea,.ui-widget button{font-family:Verdana,Arial,sans-serif;font-size:1em}.ui-widget.ui-widget-content{border:1px solid #d3d3d3}.ui-widget-content{border:1px solid #aaa;background:#fff;color:#222}.ui-widget-content a{color:#222}.ui-widget-header{border:1px solid #aaa;background:#ccc url("https://sagecell.sagemath.org/static/images/ui-bg_highlight-soft_75_cccccc_1x100.png") 50% 50% repeat-x;color:#222;font-weight:bold}.ui-widget-header a{color:#222}.ui-state-default,.ui-widget-content .ui-state-default,.ui-widget-header .ui-state-default,.ui-button,html .ui-button.ui-state-disabled:hover,html .ui-button.ui-state-disabled:active{border:1px solid #d3d3d3;background:#e6e6e6 url("https://sagecell.sagemath.org/static/images/ui-bg_glass_75_e6e6e6_1x400.png") 50% 50% repeat-x;font-weight:normal;color:#555}.ui-state-default a,.ui-state-default a:link,.ui-state-default a:visited,a.ui-button,a:link.ui-button,a:visited.ui-button,.ui-button{color:#555;text-decoration:none}.ui-state-hover,.ui-widget-content .ui-state-hover,.ui-widget-header .ui-state-hover,.ui-state-focus,.ui-widget-content .ui-state-focus,.ui-widget-header .ui-state-focus,.ui-button:hover,.ui-button:focus{border:1px solid #999;background:#dadada url("https://sagecell.sagemath.org/static/images/ui-bg_glass_75_dadada_1x400.png") 50% 50% repeat-x;font-weight:normal;color:#212121}.ui-state-hover a,.ui-state-hover a:hover,.ui-state-hover a:link,.ui-state-hover a:visited,.ui-state-focus a,.ui-state-focus a:hover,.ui-state-focus a:link,.ui-state-focus a:visited,a.ui-button:hover,a.ui-button:focus{color:#212121;text-decoration:none}.ui-visual-focus{box-shadow:0 0 3px 1px rgb(94,158,214)}.ui-state-active,.ui-widget-content .ui-state-active,.ui-widget-header .ui-state-active,a.ui-button:active,.ui-button:active,.ui-button.ui-state-active:hover{border:1px solid #aaa;background:#fff url("https://sagecell.sagemath.org/static/images/ui-bg_glass_65_ffffff_1x400.png") 50% 50% repeat-x;font-weight:normal;color:#212121}.ui-icon-background,.ui-state-active .ui-icon-background{border:#aaa;background-color:#212121}.ui-state-active a,.ui-state-active a:link,.ui-state-active a:visited{color:#212121;text-decoration:none}.ui-state-highlight,.ui-widget-content .ui-state-highlight,.ui-widget-header .ui-state-highlight{border:1px solid #fcefa1;background:#fbf9ee url("https://sagecell.sagemath.org/static/images/ui-bg_glass_55_fbf9ee_1x400.png") 50% 50% repeat-x;color:#363636}.ui-state-checked{border:1px solid #fcefa1;background:#fbf9ee}.ui-state-highlight a,.ui-widget-content .ui-state-highlight a,.ui-widget-header .ui-state-highlight a{color:#363636}.ui-state-error,.ui-widget-content .ui-state-error,.ui-widget-header .ui-state-error{border:1px solid #cd0a0a;background:#fef1ec url("https://sagecell.sagemath.org/static/images/ui-bg_glass_95_fef1ec_1x400.png") 50% 50% repeat-x;color:#cd0a0a}.ui-state-error a,.ui-widget-content .ui-state-error a,.ui-widget-header .ui-state-error a{color:#cd0a0a}.ui-state-error-text,.ui-widget-content .ui-state-error-text,.ui-widget-header .ui-state-error-text{color:#cd0a0a}.ui-priority-primary,.ui-widget-content .ui-priority-primary,.ui-widget-header .ui-priority-primary{font-weight:bold}.ui-priority-secondary,.ui-widget-content .ui-priority-secondary,.ui-widget-header .ui-priority-secondary{opacity:.7;filter:Alpha(Opacity=70);font-weight:normal}.ui-state-disabled,.ui-widget-content .ui-state-disabled,.ui-widget-header .ui-state-disabled{opacity:.35;filter:Alpha(Opacity=35);background-image:none}.ui-state-disabled .ui-icon{filter:Alpha(Opacity=35)}.ui-icon{width:16px;height:16px}.ui-icon,.ui-widget-content .ui-icon{background-image:url("https://sagecell.sagemath.org/static/images/ui-icons_222222_256x240.png")}.ui-widget-header .ui-icon{background-image:url("https://sagecell.sagemath.org/static/images/ui-icons_222222_256x240.png")}.ui-button .ui-icon{background-image:url("https://sagecell.sagemath.org/static/images/ui-icons_888888_256x240.png")}.ui-state-hover .ui-icon,.ui-state-focus .ui-icon,.ui-button:hover .ui-icon,.ui-button:focus .ui-icon,.ui-state-default .ui-icon{background-image:url("https://sagecell.sagemath.org/static/images/ui-icons_454545_256x240.png")}.ui-state-active .ui-icon,.ui-button:active .ui-icon{background-image:url("https://sagecell.sagemath.org/static/images/ui-icons_454545_256x240.png")}.ui-state-highlight .ui-icon,.ui-button .ui-state-highlight.ui-icon{background-image:url("https://sagecell.sagemath.org/static/images/ui-icons_2e83ff_256x240.png")}.ui-state-error .ui-icon,.ui-state-error-text .ui-icon{background-image:url("https://sagecell.sagemath.org/static/images/ui-icons_cd0a0a_256x240.png")}.ui-icon-blank{background-position:16px 16px}.ui-icon-caret-1-n{background-position:0 0}.ui-icon-caret-1-ne{background-position:-16px 0}.ui-icon-caret-1-e{background-position:-32px 0}.ui-icon-caret-1-se{background-position:-48px 0}.ui-icon-caret-1-s{background-position:-65px 0}.ui-icon-caret-1-sw{background-position:-80px 0}.ui-icon-caret-1-w{background-position:-96px 0}.ui-icon-caret-1-nw{background-position:-112px 0}.ui-icon-caret-2-n-s{background-position:-128px 0}.ui-icon-caret-2-e-w{background-position:-144px 0}.ui-icon-triangle-1-n{background-position:0 -16px}.ui-icon-triangle-1-ne{background-position:-16px -16px}.ui-icon-triangle-1-e{background-position:-32px -16px}.ui-icon-triangle-1-se{background-position:-48px -16px}.ui-icon-triangle-1-s{background-position:-65px -16px}.ui-icon-triangle-1-sw{background-position:-80px -16px}.ui-icon-triangle-1-w{background-position:-96px -16px}.ui-icon-triangle-1-nw{background-position:-112px -16px}.ui-icon-triangle-2-n-s{background-position:-128px -16px}.ui-icon-triangle-2-e-w{background-position:-144px -16px}.ui-icon-arrow-1-n{background-position:0 -32px}.ui-icon-arrow-1-ne{background-position:-16px -32px}.ui-icon-arrow-1-e{background-position:-32px -32px}.ui-icon-arrow-1-se{background-position:-48px -32px}.ui-icon-arrow-1-s{background-position:-65px -32px}.ui-icon-arrow-1-sw{background-position:-80px -32px}.ui-icon-arrow-1-w{background-position:-96px -32px}.ui-icon-arrow-1-nw{background-position:-112px -32px}.ui-icon-arrow-2-n-s{background-position:-128px -32px}.ui-icon-arrow-2-ne-sw{background-position:-144px -32px}.ui-icon-arrow-2-e-w{background-position:-160px -32px}.ui-icon-arrow-2-se-nw{background-position:-176px -32px}.ui-icon-arrowstop-1-n{background-position:-192px -32px}.ui-icon-arrowstop-1-e{background-position:-208px -32px}.ui-icon-arrowstop-1-s{background-position:-224px -32px}.ui-icon-arrowstop-1-w{background-position:-240px -32px}.ui-icon-arrowthick-1-n{background-position:1px -48px}.ui-icon-arrowthick-1-ne{background-position:-16px -48px}.ui-icon-arrowthick-1-e{background-position:-32px -48px}.ui-icon-arrowthick-1-se{background-position:-48px -48px}.ui-icon-arrowthick-1-s{background-position:-64px -48px}.ui-icon-arrowthick-1-sw{background-position:-80px -48px}.ui-icon-arrowthick-1-w{background-position:-96px -48px}.ui-icon-arrowthick-1-nw{background-position:-112px -48px}.ui-icon-arrowthick-2-n-s{background-position:-128px -48px}.ui-icon-arrowthick-2-ne-sw{background-position:-144px -48px}.ui-icon-arrowthick-2-e-w{background-position:-160px -48px}.ui-icon-arrowthick-2-se-nw{background-position:-176px -48px}.ui-icon-arrowthickstop-1-n{background-position:-192px -48px}.ui-icon-arrowthickstop-1-e{background-position:-208px -48px}.ui-icon-arrowthickstop-1-s{background-position:-224px -48px}.ui-icon-arrowthickstop-1-w{background-position:-240px -48px}.ui-icon-arrowreturnthick-1-w{background-position:0 -64px}.ui-icon-arrowreturnthick-1-n{background-position:-16px -64px}.ui-icon-arrowreturnthick-1-e{background-position:-32px -64px}.ui-icon-arrowreturnthick-1-s{background-position:-48px -64px}.ui-icon-arrowreturn-1-w{background-position:-64px -64px}.ui-icon-arrowreturn-1-n{background-position:-80px -64px}.ui-icon-arrowreturn-1-e{background-position:-96px -64px}.ui-icon-arrowreturn-1-s{background-position:-112px -64px}.ui-icon-arrowrefresh-1-w{background-position:-128px -64px}.ui-icon-arrowrefresh-1-n{background-position:-144px -64px}.ui-icon-arrowrefresh-1-e{background-position:-160px -64px}.ui-icon-arrowrefresh-1-s{background-position:-176px -64px}.ui-icon-arrow-4{background-position:0 -80px}.ui-icon-arrow-4-diag{background-position:-16px -80px}.ui-icon-extlink{background-position:-32px -80px}.ui-icon-newwin{background-position:-48px -80px}.ui-icon-refresh{background-position:-64px -80px}.ui-icon-shuffle{background-position:-80px -80px}.ui-icon-transfer-e-w{background-position:-96px -80px}.ui-icon-transferthick-e-w{background-position:-112px -80px}.ui-icon-folder-collapsed{background-position:0 -96px}.ui-icon-folder-open{background-position:-16px -96px}.ui-icon-document{background-position:-32px -96px}.ui-icon-document-b{background-position:-48px -96px}.ui-icon-note{background-position:-64px -96px}.ui-icon-mail-closed{background-position:-80px -96px}.ui-icon-mail-open{background-position:-96px -96px}.ui-icon-suitcase{background-position:-112px -96px}.ui-icon-comment{background-position:-128px -96px}.ui-icon-person{background-position:-144px -96px}.ui-icon-print{background-position:-160px -96px}.ui-icon-trash{background-position:-176px -96px}.ui-icon-locked{background-position:-192px -96px}.ui-icon-unlocked{background-position:-208px -96px}.ui-icon-bookmark{background-position:-224px -96px}.ui-icon-tag{background-position:-240px -96px}.ui-icon-home{background-position:0 -112px}.ui-icon-flag{background-position:-16px -112px}.ui-icon-calendar{background-position:-32px -112px}.ui-icon-cart{background-position:-48px -112px}.ui-icon-pencil{background-position:-64px -112px}.ui-icon-clock{background-position:-80px -112px}.ui-icon-disk{background-position:-96px -112px}.ui-icon-calculator{background-position:-112px -112px}.ui-icon-zoomin{background-position:-128px -112px}.ui-icon-zoomout{background-position:-144px -112px}.ui-icon-search{background-position:-160px -112px}.ui-icon-wrench{background-position:-176px -112px}.ui-icon-gear{background-position:-192px -112px}.ui-icon-heart{background-position:-208px -112px}.ui-icon-star{background-position:-224px -112px}.ui-icon-link{background-position:-240px -112px}.ui-icon-cancel{background-position:0 -128px}.ui-icon-plus{background-position:-16px -128px}.ui-icon-plusthick{background-position:-32px -128px}.ui-icon-minus{background-position:-48px -128px}.ui-icon-minusthick{background-position:-64px -128px}.ui-icon-close{background-position:-80px -128px}.ui-icon-closethick{background-position:-96px -128px}.ui-icon-key{background-position:-112px -128px}.ui-icon-lightbulb{background-position:-128px -128px}.ui-icon-scissors{background-position:-144px -128px}.ui-icon-clipboard{background-position:-160px -128px}.ui-icon-copy{background-position:-176px -128px}.ui-icon-contact{background-position:-192px -128px}.ui-icon-image{background-position:-208px -128px}.ui-icon-video{background-position:-224px -128px}.ui-icon-script{background-position:-240px -128px}.ui-icon-alert{background-position:0 -144px}.ui-icon-info{background-position:-16px -144px}.ui-icon-notice{background-position:-32px -144px}.ui-icon-help{background-position:-48px -144px}.ui-icon-check{background-position:-64px -144px}.ui-icon-bullet{background-position:-80px -144px}.ui-icon-radio-on{background-position:-96px -144px}.ui-icon-radio-off{background-position:-112px -144px}.ui-icon-pin-w{background-position:-128px -144px}.ui-icon-pin-s{background-position:-144px -144px}.ui-icon-play{background-position:0 -160px}.ui-icon-pause{background-position:-16px -160px}.ui-icon-seek-next{background-position:-32px -160px}.ui-icon-seek-prev{background-position:-48px -160px}.ui-icon-seek-end{background-position:-64px -160px}.ui-icon-seek-start{background-position:-80px -160px}.ui-icon-seek-first{background-position:-80px -160px}.ui-icon-stop{background-position:-96px -160px}.ui-icon-eject{background-position:-112px -160px}.ui-icon-volume-off{background-position:-128px -160px}.ui-icon-volume-on{background-position:-144px -160px}.ui-icon-power{background-position:0 -176px}.ui-icon-signal-diag{background-position:-16px -176px}.ui-icon-signal{background-position:-32px -176px}.ui-icon-battery-0{background-position:-48px -176px}.ui-icon-battery-1{background-position:-64px -176px}.ui-icon-battery-2{background-position:-80px -176px}.ui-icon-battery-3{background-position:-96px -176px}.ui-icon-circle-plus{background-position:0 -192px}.ui-icon-circle-minus{background-position:-16px -192px}.ui-icon-circle-close{background-position:-32px -192px}.ui-icon-circle-triangle-e{background-position:-48px -192px}.ui-icon-circle-triangle-s{background-position:-64px -192px}.ui-icon-circle-triangle-w{background-position:-80px -192px}.ui-icon-circle-triangle-n{background-position:-96px -192px}.ui-icon-circle-arrow-e{background-position:-112px -192px}.ui-icon-circle-arrow-s{background-position:-128px -192px}.ui-icon-circle-arrow-w{background-position:-144px -192px}.ui-icon-circle-arrow-n{background-position:-160px -192px}.ui-icon-circle-zoomin{background-position:-176px -192px}.ui-icon-circle-zoomout{background-position:-192px -192px}.ui-icon-circle-check{background-position:-208px -192px}.ui-icon-circlesmall-plus{background-position:0 -208px}.ui-icon-circlesmall-minus{background-position:-16px -208px}.ui-icon-circlesmall-close{background-position:-32px -208px}.ui-icon-squaresmall-plus{background-position:-48px -208px}.ui-icon-squaresmall-minus{background-position:-64px -208px}.ui-icon-squaresmall-close{background-position:-80px -208px}.ui-icon-grip-dotted-vertical{background-position:0 -224px}.ui-icon-grip-dotted-horizontal{background-position:-16px -224px}.ui-icon-grip-solid-vertical{background-position:-32px -224px}.ui-icon-grip-solid-horizontal{background-position:-48px -224px}.ui-icon-gripsmall-diagonal-se{background-position:-64px -224px}.ui-icon-grip-diagonal-se{background-position:-80px -224px}.ui-corner-all,.ui-corner-top,.ui-corner-left,.ui-corner-tl{border-top-left-radius:4px}.ui-corner-all,.ui-corner-top,.ui-corner-right,.ui-corner-tr{border-top-right-radius:4px}.ui-corner-all,.ui-corner-bottom,.ui-corner-left,.ui-corner-bl{border-bottom-left-radius:4px}.ui-corner-all,.ui-corner-bottom,.ui-corner-right,.ui-corner-br{border-bottom-right-radius:4px}.ui-widget-overlay{background:#aaa;opacity:.3;filter:Alpha(Opacity=30)}.ui-widget-shadow{-webkit-box-shadow:-8px -8px 8px #aaa;box-shadow:-8px -8px 8px #aaa}
+
+.colorpicker {
+	width: 356px;
+	height: 176px;
+	overflow: hidden;
+	position: absolute;
+	background: url(https://sagecell.sagemath.org/static/colorpicker/images/colorpicker_background.png);
+	font-family: Arial, Helvetica, sans-serif;
+	display: none;
+}
+.colorpicker_color {
+	width: 150px;
+	height: 150px;
+	left: 14px;
+	top: 13px;
+	position: absolute;
+	background: #f00;
+	overflow: hidden;
+	cursor: crosshair;
+}
+.colorpicker_color div {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 150px;
+	height: 150px;
+	background: url(https://sagecell.sagemath.org/static/colorpicker/images/colorpicker_overlay.png);
+}
+.colorpicker_color div div {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 11px;
+	height: 11px;
+	overflow: hidden;
+	background: url(https://sagecell.sagemath.org/static/colorpicker/images/colorpicker_select.gif);
+	margin: -5px 0 0 -5px;
+}
+.colorpicker_hue {
+	position: absolute;
+	top: 13px;
+	left: 171px;
+	width: 35px;
+	height: 150px;
+	cursor: n-resize;
+}
+.colorpicker_hue div {
+	position: absolute;
+	width: 35px;
+	height: 9px;
+	overflow: hidden;
+	background: url(https://sagecell.sagemath.org/static/colorpicker/images/colorpicker_indic.gif) left top;
+	margin: -4px 0 0 0;
+	left: 0px;
+}
+.colorpicker_new_color {
+	position: absolute;
+	width: 60px;
+	height: 30px;
+	left: 213px;
+	top: 13px;
+	background: #f00;
+}
+.colorpicker_current_color {
+	position: absolute;
+	width: 60px;
+	height: 30px;
+	left: 283px;
+	top: 13px;
+	background: #f00;
+}
+.colorpicker input {
+	background-color: transparent;
+	border: 1px solid transparent;
+	position: absolute;
+	font-size: 10px;
+	font-family: Arial, Helvetica, sans-serif;
+	color: #898989;
+	top: 4px;
+	right: 11px;
+	text-align: right;
+	margin: 0;
+	padding: 0;
+	height: 11px;
+}
+.colorpicker_hex {
+	position: absolute;
+	width: 72px;
+	height: 22px;
+	background: url(https://sagecell.sagemath.org/static/colorpicker/images/colorpicker_hex.png) top;
+	left: 212px;
+	top: 142px;
+}
+.colorpicker_hex input {
+	right: 6px;
+}
+.colorpicker_field {
+	height: 22px;
+	width: 62px;
+	background-position: top;
+	position: absolute;
+}
+.colorpicker_field span {
+	position: absolute;
+	width: 12px;
+	height: 22px;
+	overflow: hidden;
+	top: 0;
+	right: 0;
+	cursor: n-resize;
+}
+.colorpicker_rgb_r {
+	background-image: url(https://sagecell.sagemath.org/static/colorpicker/images/colorpicker_rgb_r.png);
+	top: 52px;
+	left: 212px;
+}
+.colorpicker_rgb_g {
+	background-image: url(https://sagecell.sagemath.org/static/colorpicker/images/colorpicker_rgb_g.png);
+	top: 82px;
+	left: 212px;
+}
+.colorpicker_rgb_b {
+	background-image: url(https://sagecell.sagemath.org/static/colorpicker/images/colorpicker_rgb_b.png);
+	top: 112px;
+	left: 212px;
+}
+.colorpicker_hsb_h {
+	background-image: url(https://sagecell.sagemath.org/static/colorpicker/images/colorpicker_hsb_h.png);
+	top: 52px;
+	left: 282px;
+}
+.colorpicker_hsb_s {
+	background-image: url(https://sagecell.sagemath.org/static/colorpicker/images/colorpicker_hsb_s.png);
+	top: 82px;
+	left: 282px;
+}
+.colorpicker_hsb_b {
+	background-image: url(https://sagecell.sagemath.org/static/colorpicker/images/colorpicker_hsb_b.png);
+	top: 112px;
+	left: 282px;
+}
+.colorpicker_submit {
+	position: absolute;
+	width: 22px;
+	height: 22px;
+	background: url(https://sagecell.sagemath.org/static/colorpicker/images/colorpicker_submit.png) top;
+	left: 322px;
+	top: 142px;
+	overflow: hidden;
+}
+.colorpicker_focus {
+	background-position: center;
+}
+.colorpicker_hex.colorpicker_focus {
+	background-position: bottom;
+}
+.colorpicker_submit.colorpicker_focus {
+	background-position: bottom;
+}
+.colorpicker_slider {
+	background-position: bottom;
+}
+
+
+/*!
+ *  Font Awesome 3.0.2
+ *  the iconic font designed for use with Twitter Bootstrap
+ *  -------------------------------------------------------
+ *  The full suite of pictographic icons, examples, and documentation
+ *  can be found at: http://fortawesome.github.com/Font-Awesome/
+ *
+ *  License
+ *  -------------------------------------------------------
+ *  - The Font Awesome font is licensed under the SIL Open Font License - http://scripts.sil.org/OFL
+ *  - Font Awesome CSS, LESS, and SASS files are licensed under the MIT License -
+ *    http://opensource.org/licenses/mit-license.html
+ *  - The Font Awesome pictograms are licensed under the CC BY 3.0 License - http://creativecommons.org/licenses/by/3.0/
+ *  - Attribution is no longer required in Font Awesome 3.0, but much appreciated:
+ *    "Font Awesome by Dave Gandy - http://fortawesome.github.com/Font-Awesome"
+
+ *  Contact
+ *  -------------------------------------------------------
+ *  Email: dave@davegandy.com
+ *  Twitter: http://twitter.com/fortaweso_me
+ *  Work: Lead Product Designer @ http://kyruus.com
+ */
+@font-face {
+  font-family: 'FontAwesomeSagecell';
+  src: url('https://sagecell.sagemath.org/static/fontawesome-webfont.eot?v=3.0.1');
+  src: url('https://sagecell.sagemath.org/static/fontawesome-webfont.eot?#iefix&v=3.0.1') format('embedded-opentype'),
+    url('https://sagecell.sagemath.org/static/fontawesome-webfont.woff?v=3.0.1') format('woff'),
+    url('https://sagecell.sagemath.org/static/fontawesome-webfont.ttf?v=3.0.1') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+/*  Font Awesome styles
+    ------------------------------------------------------- */
+.sagecell [class^="sagecell_icon-"],
+.sagecell [class*=" sagecell_icon-"] {
+  font-family: FontAwesomeSagecell;
+  font-weight: normal;
+  font-style: normal;
+  text-decoration: inherit;
+  -webkit-font-smoothing: antialiased;
+
+  font-size: 125%;
+  background: transparent;
+  /* sprites.less reset */
+  display: inline;
+  width: auto;
+  height: auto;
+  line-height: normal;
+  vertical-align: baseline;
+  margin-top: 0;
+}
+.sagecell [class^="sagecell_icon-"]:before,
+.sagecell [class*=" sagecell_icon-"]:before {
+  text-decoration: inherit;
+  display: inline-block;
+  speak: none;
+}
+.sagecell .sagecell_icon-resize-full:before		{ content: "\f021"; }
+.sagecell .sagecell_icon-resize-small:before		{ content: "\f022"; }
+
+
+.sagecell_messages div {
+    margin-bottom: 12pt;
+}
+
+.sagecell_sliderControl {
+    max-width: 40em;
+    margin-right: 1.0em;
+    margin-left: 0.5em;
+}
+
+.sagecell_multiSliderContainer {
+    margin-left: 1.0em;
+    whitespace: nowrap;
+}
+
+.sagecell_multiSliderControl {
+    display: inline-block;
+    margin-right: 0.5em;
+    margin-left: 0.5em;
+    margin-top: 0.25em;
+}
+
+.sagecell_colorSelector {
+    display: inline-block;
+    width: 2em;
+    height: 2em;
+    border: 2px solid gray;
+    border-radius: 3px;
+    padding: 1px;
+    cursor: pointer;
+    vertical-align: middle;
+}
+
+.sagecell .error, .sagecell .stderr {
+    color: red;
+}
+
+.sagecell .colorpicker {
+    z-index: 10;
+}
+
+.sagecell .CodeMirror {
+    border: 1px solid;
+    height: auto;
+}
+
+.sagecell .CodeMirror-scroll {
+    min-height: 3em;
+    max-height: 14em;
+}
+
+.sagecell .CodeMirror-fullscreen .CodeMirror-scroll {
+    max-height: none;
+}
+
+.sagecell .CodeMirror-hints {
+    padding-right: 10px;
+}
+
+.sagecell .ui-dialog-content {
+    font-size: 80%;
+}
+
+.sagecell_input {
+    overflow: hidden;
+    padding-right: 2px;
+}
+
+.sagecell button.sagecell_evalButton {
+    cursor: default;
+}
+
+.sagecell_output {
+    padding-right: 2px;
+}
+
+.sagecell_output_elements {
+    margin-top: 0.5em;
+}
+
+.sagecell_permalink {
+    padding-right: 5px;
+    text-align: right;
+    position: relative;
+}
+
+.sagecell_permalink_result {
+    position: absolute;
+    padding-right: 5px;
+    text-align: right;
+    right: 3px;
+    z-index: 100;
+    background-color: white;
+    border: 1px solid black;
+    border-radius: 3px;
+    padding: 5px;
+}
+
+.sagecell_permalink_result a:not([href]) {
+    color: gray;
+    text-decoration: none;
+    cursor: default;
+}
+
+.sagecell_permalink_result img {
+    display: inline-block;
+    background-color: lightgray;
+    width: 200px;
+    height: 200px;
+}
+
+.sagecell_sessionContainer {
+    position: relative;
+}
+
+.sagecell_sessionContainer:after {
+    display: table;
+    content: " ";
+    clear: both;
+}
+
+.sagecell_sessionOutput {
+    position: relative;
+    border: 2px solid;
+    padding: 5px;
+    margin-top: 2px;
+    min-height: 16px;
+    overflow-x: auto;
+}
+
+.sagecell_sessionOutput pre {
+    margin: 0px;
+}
+
+.sagecell_sessionOutput.sagecell_active {
+    border-color: #080;
+}
+
+.sagecell_poweredBy {
+    float: right;
+    padding: 3px 5px 5px 0px;
+    text-align: right;
+    overflow: visible;
+    font-size: 80%;
+}
+
+.sagecell_poweredBy img {
+    vertical-align: -5px;
+    border-style: none;
+    text-decoration: none;
+}
+
+.sagecell_spinner {
+    position: absolute;
+    right: 5px;
+    top: 5px;
+}
+
+.sagecell_sessionFiles {
+    width: 80%;
+    padding-bottom: 1.0em;
+}
+
+.sagecell_interactContainer {
+    position: relative;
+    padding: 15px 5px 5px 5px;
+    border: 2px solid lightgray;
+    margin-bottom: 2px;
+}
+
+.sagecell_bookmarks {
+    cursor: default;
+}
+
+.sagecell_interactContainer .sagecell_bookmarks {
+    position: absolute;
+    right: 3px;
+    top: 3px;
+}
+
+.sagecell_bookmarks div {
+    display: inline-block;
+    height: 1.5em;
+    vertical-align: bottom;
+    overflow-y: hidden;
+    font-size: 1.3em;
+    font-family: Arial;
+    color: #8c8c8c;
+    transition: color 0.25s ease-out;
+}
+
+.sagecell_bookmarks div:first-child {
+    color: transparent;
+    visibility: hidden;
+}
+
+.sagecell_bookmarks div:last-child {
+    margin-left: 10px;
+    width: 1.5em;
+}
+
+.sagecell_bookmarks div:last-child:before {
+    display: inline-block;
+    content: "\2605";
+}
+
+.sagecell_bookmarks div.sagecell_export {
+    visibility: visible;
+    transition: color 0.5s 0.5s;
+    color: inherit;
+    cursor: pointer;
+}
+
+.sagecell_export:before {
+    content: "\22ef";
+}
+
+.sagecell_bookmarks input {
+    border: 1px solid black;
+    border-radius: 3px;
+    vertical-align: 50%;
+    background-color: rgba(0, 0, 0, 0.1);
+    font-family: monospace;
+}
+
+.sagecell_sessionOutput.sagecell_active .sagecell_bookmarks div:last-child:hover {
+    color: #ffa500;
+    cursor: pointer;
+}
+
+.sagecell_bookmarks_list.ui-menu {
+    display: inline-block;
+    min-width: 15em;
+    cursor: default;
+    z-index: 99;
+}
+
+.sagecell_bookmarks_list.ui-menu li.ui-state-disabled {
+    opacity: 1;
+    margin: 0px;
+}
+
+.sagecell_bookmarks_list > li > a > input,
+.sagecell_bookmarks_list > li > a > div:first-child {
+    display: inline-block;
+    width: 85%;
+    border: none;
+    border-radius: 3px;
+}
+
+.sagecell_bookmarks_list > li > a > div:last-child {
+    float: right;
+    width: 1.5em;
+    text-align: center;
+    font-weight: bold;
+    color: #777;
+    cursor: pointer;
+    transition: 0.25s color;
+}
+
+.sagecell_bookmarks_list > li:not(:last-child):not(:hover) > a > div:last-child {
+     display: none;
+}
+
+.sagecell_bookmarks_list > li > a > div:last-child:hover {
+    color: darkred;
+}
+
+.sagecell_bookmarks_list > li > a > div:last-child:before {
+    content: "\2716";
+}
+
+.sagecell_bookmarks_list > li:last-child > a > div:hover {
+    color: darkblue;
+}
+
+.sagecell_bookmarks_list > li:last-child > a > div:before {
+    content: "+";
+}
+
+.sagecell_interactOutput {
+    padding: 10px;
+    padding-right: 2em;
+    padding-left: 2em;
+    overflow-x: auto;
+    vertical-align: top;
+}
+
+.sagecell_interactValueBox {
+    border: 1px solid transparent;
+    background-color: transparent;
+    vertical-align: baseline;
+    font-family: monospace;  /* Required since dynamic input box size is determined by monospaced fonts */
+    max-width: 10ex;
+}
+
+.sagecell_interactValueBox:hover {
+    border-color: lightgray;
+}
+
+.sagecell_interactValueBox:focus {
+    border-color: gray;
+}
+
+.sagecell_interactControlCell {
+    display: inline-table;
+    vertical-align: top;
+    min-width: 200px;
+}
+
+.sagecell_interactControlLabel {
+    display: table-cell;
+    text-align: right !important;
+    vertical-align: middle !important;
+    padding-right: 0.5ex !important;
+    padding-top: 0.6ex !important;
+    padding-bottom: 0.6ex !important;
+    min-width: 10ex;
+    overflow-wrap: break-word;
+}
+
+.sagecell_interactControl {
+    display: table-cell;
+    width: 100%;
+    height: 100%;
+    vertical-align: middle;
+}
+
+.sagecell_interactContainer .sagecell_interactControl {
+    /* only pad if we are setting up the layout.  If we have an inline control
+       don't pad, but leave it up to the user */
+    padding: 1ex;
+}
+
+.sagecell_sliderContainer {
+    display: table;
+    width: 100%;
+    height: 100%;
+    max-width: 700px;
+    min-width: 200px;
+}
+
+.sagecell_sliderContainer > div:first-child {
+    display: table-cell;
+    width: 100%;
+    vertical-align: middle;
+}
+
+.sagecell_sliderContainer > div:first-child + div {
+    display: table-cell;
+    min-width: 11ex;
+}
+
+.sagecell_interactTextbox[size="0"] {
+    width: 100%;
+    max-width: 40em;
+}
+
+.sagecell_dirtyControl {
+    box-shadow: 0px 0px 2px 1px #c00;
+    transition: box-shadow 1s;
+    border-radius: 2px;
+}
+
+.sagecell_commands, .sagecell .ui-widget .sagecell_commands {
+    width: 100%;
+    height: 200px;
+    border: 1px solid;
+    font-family: monospace;
+    font-size: 10pt;
+}
+
+.sagecell_editor {
+    margin-bottom: 8px;
+}
+
+.sagecell_options {
+    display: inline-block;
+    margin-right: 2px;
+    float: right;
+    text-align: right;
+    font-size: 80%;
+}
+
+.sagecell_fullScreen {
+    position: absolute;
+    right: 1.5em;
+    top: 0.5em;
+    z-index: 10;
+    padding: 2px;
+    color: rgb(128,128,128);
+}
+
+.sagecell_editor div.ui-accordion-content.ui-helper-reset {
+    padding: 1em 0.5em;
+    font-size: 90.9%;
+}
+
+.sagecell_advancedFrame {
+    border-radius: 5px;
+    background-color: #ddf;
+    border: 1px solid;
+    padding: 0.2em;
+    display: inline-block;
+    width: 300px;
+    overflow: hidden;
+    margin-left: 3em;
+    margin-bottom: 1em;
+    vertical-align: top;
+}
+
+.sagecell_advancedTitle {
+    cursor: default;
+}
+
+.sagecell_advancedFields {
+    border: 1px solid gray;
+    background-color: white;
+    padding: 5px;
+}
+
+.sagecell_fileList li {
+    list-style: none;
+    position: relative;
+}
+
+.sagecell_fileName {
+    position: relative;
+    display: inline-block;
+    white-space: nowrap;
+    width: 230px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sagecell_deleteButton {
+    position: absolute;
+    left: -1.2em;
+    cursor: pointer;
+    margin-right: 5px;
+}
+
+.sagecell_deleteButton:hover {
+    color: red;
+}
+
+.sagecell_deleteButton:active {
+    color: darkred;
+}
+
+.sagecell_deleteButton:before {
+    content: "\2716";
+}
+
+.sagecell table.table_form tr.row-a {
+    background-color: #f8f8f8;
+}
+
+.sagecell table.table_form tr.row-b {
+    background-color: #efefef;
+}
+
+.sagecell table.table_form td {
+    padding: 5px 15px;
+    color: #00a;
+}
+
+.sagecell .sagecell-templates .hide {
+ display: none;   
+}
+
+.sagecell .sagecell-templates .pull-right {
+    float: right;
+}
+
+.sagecell .sagecell-templates .lighten {
+    color: gray;
+}
+
+/* These colors are constructed in
+ * notebook/static/notebook/less/ansicolors.less
+ * but were copied from
+ * notebook/static/style/ipython.min.css
+ * and processed in Python via
+ * replace("{\n  ", "{").replace("\n}", "}").replace("\n.","\n.sagecell .")
+ */
+.sagecell .ansi-black-fg {color: #3E424D;}
+.sagecell .ansi-black-bg {background-color: #3E424D;}
+.sagecell .ansi-black-intense-fg {color: #282C36;}
+.sagecell .ansi-black-intense-bg {background-color: #282C36;}
+.sagecell .ansi-red-fg {color: #E75C58;}
+.sagecell .ansi-red-bg {background-color: #E75C58;}
+.sagecell .ansi-red-intense-fg {color: #B22B31;}
+.sagecell .ansi-red-intense-bg {background-color: #B22B31;}
+.sagecell .ansi-green-fg {color: #00A250;}
+.sagecell .ansi-green-bg {background-color: #00A250;}
+.sagecell .ansi-green-intense-fg {color: #007427;}
+.sagecell .ansi-green-intense-bg {background-color: #007427;}
+.sagecell .ansi-yellow-fg {color: #DDB62B;}
+.sagecell .ansi-yellow-bg {background-color: #DDB62B;}
+.sagecell .ansi-yellow-intense-fg {color: #B27D12;}
+.sagecell .ansi-yellow-intense-bg {background-color: #B27D12;}
+.sagecell .ansi-blue-fg {color: #208FFB;}
+.sagecell .ansi-blue-bg {background-color: #208FFB;}
+.sagecell .ansi-blue-intense-fg {color: #0065CA;}
+.sagecell .ansi-blue-intense-bg {background-color: #0065CA;}
+.sagecell .ansi-magenta-fg {color: #D160C4;}
+.sagecell .ansi-magenta-bg {background-color: #D160C4;}
+.sagecell .ansi-magenta-intense-fg {color: #A03196;}
+.sagecell .ansi-magenta-intense-bg {background-color: #A03196;}
+.sagecell .ansi-cyan-fg {color: #60C6C8;}
+.sagecell .ansi-cyan-bg {background-color: #60C6C8;}
+.sagecell .ansi-cyan-intense-fg {color: #258F8F;}
+.sagecell .ansi-cyan-intense-bg {background-color: #258F8F;}
+.sagecell .ansi-white-fg {color: #C5C1B4;}
+.sagecell .ansi-white-bg {background-color: #C5C1B4;}
+.sagecell .ansi-white-intense-fg {color: #A1A6B2;}
+.sagecell .ansi-white-intense-bg {background-color: #A1A6B2;}
+.sagecell .ansi-default-inverse-fg {color: #FFFFFF;}
+.sagecell .ansi-default-inverse-bg {background-color: #000000;}
+.sagecell .ansi-bold {font-weight: bold;}
+.sagecell .ansi-underline {text-decoration: underline;}
+</style><script type="text/javascript">window.MathJax = {
+        tex: {
+          inlineMath: [["$", "$"], ["\\(", "\\)"]],
+          displayMath: [["$$", "$$"], ["\\[", "\\]"]],
+          processEscapes: true,
+          processEnvironments: true,
+        },
+        options: {
+          renderActions: { /* remove when dropping MathJax2 compatibility */
+            find_script_mathtex: [10, function (doc) {
+              for (const node of document.querySelectorAll('script[type^="math/tex"]')) {
+                const display = !!node.type.match(/; *mode=display/);
+                const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display);
+                const text = document.createTextNode('');
+                node.parentNode.replaceChild(text, node);
+                math.start = {node: text, delim: '', n: 0};
+                math.end = {node: text, delim: '', n: 0};
+                doc.math.push(math);
+              }
+            }, '']
+          }
+        }
+    };</script><script type="text/javascript" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js"></script><script type="text/javascript" async="" src="https://ssl.google-analytics.com/ga.js"></script><script src="https://dahn-research.eu/nbplayer/vendor/js/vendor/es5-shim.min.js"></script>
+        <script src="https://dahn-research.eu/nbplayer/vendor/js/vendor/marked.min.js"></script>
+        <script src="https://dahn-research.eu/nbplayer/vendor/js/vendor/purify.min.js"></script>
+        <script src="https://dahn-research.eu/nbplayer/vendor/js/vendor/ansi_up.min.js"></script>
+        <script src="https://dahn-research.eu/nbplayer/vendor/js/vendor/prism.min.js"></script>
+        <script src="https://dahn-research.eu/nbplayer/vendor/js/vendor/katex.min.js"></script>
+        <script src="https://dahn-research.eu/nbplayer/vendor/js/vendor/katex-auto-render.min.js"></script>
+        <script src="https://dahn-research.eu/nbplayer/vendor/js/vendor/notebook.min.js"></script>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
+        <link rel="stylesheet" href="https://dahn-research.eu/nbplayer/vendor/css/vendor/katex.min.css">
+        <link rel="stylesheet" href="https://dahn-research.eu/nbplayer/vendor/css/vendor/prism.css">
+        <link rel="stylesheet" href="https://dahn-research.eu/nbplayer/vendor/css/notebook.css">
+        <link rel="stylesheet" href="https://dahn-research.eu/nbplayer/vendor/css/nbpreview.css">
+        <link rel="stylesheet" href="https://dahn-research.eu/nbplayer/css/nbplayer.css">
+        <link rel="stylesheet" href="custom.css">
+
+    <style type="text/css">.CtxtMenu_InfoClose {  top:.2em; right:.2em;}
+.CtxtMenu_InfoContent {  overflow:auto; text-align:left; font-size:80%;  padding:.4em .6em; border:1px inset; margin:1em 0px;  max-height:20em; max-width:30em; background-color:#EEEEEE;  white-space:normal;}
+.CtxtMenu_Info.CtxtMenu_MousePost {outline:none;}
+.CtxtMenu_Info {  position:fixed; left:50%; width:auto; text-align:center;  border:3px outset; padding:1em 2em; background-color:#DDDDDD;  color:black;  cursor:default; font-family:message-box; font-size:120%;  font-style:normal; text-indent:0; text-transform:none;  line-height:normal; letter-spacing:normal; word-spacing:normal;  word-wrap:normal; white-space:nowrap; float:none; z-index:201;  border-radius: 15px;                     /* Opera 10.5 and IE9 */  -webkit-border-radius:15px;               /* Safari and Chrome */  -moz-border-radius:15px;                  /* Firefox */  -khtml-border-radius:15px;                /* Konqueror */  box-shadow:0px 10px 20px #808080;         /* Opera 10.5 and IE9 */  -webkit-box-shadow:0px 10px 20px #808080; /* Safari 3 & Chrome */  -moz-box-shadow:0px 10px 20px #808080;    /* Forefox 3.5 */  -khtml-box-shadow:0px 10px 20px #808080;  /* Konqueror */  filter:progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color="gray", Positive="true"); /* IE */}
+</style><style type="text/css">.CtxtMenu_MenuClose {  position:absolute;  cursor:pointer;  display:inline-block;  border:2px solid #AAA;  border-radius:18px;  -webkit-border-radius: 18px;             /* Safari and Chrome */  -moz-border-radius: 18px;                /* Firefox */  -khtml-border-radius: 18px;              /* Konqueror */  font-family: "Courier New", Courier;  font-size:24px;  color:#F0F0F0}
+.CtxtMenu_MenuClose span {  display:block; background-color:#AAA; border:1.5px solid;  border-radius:18px;  -webkit-border-radius: 18px;             /* Safari and Chrome */  -moz-border-radius: 18px;                /* Firefox */  -khtml-border-radius: 18px;              /* Konqueror */  line-height:0;  padding:8px 0 6px     /* may need to be browser-specific */}
+.CtxtMenu_MenuClose:hover {  color:white!important;  border:2px solid #CCC!important}
+.CtxtMenu_MenuClose:hover span {  background-color:#CCC!important}
+.CtxtMenu_MenuClose:hover:focus {  outline:none}
+</style><style type="text/css">.CtxtMenu_Menu {  position:absolute;  background-color:white;  color:black;  width:auto; padding:5px 0px;  border:1px solid #CCCCCC; margin:0; cursor:default;  font: menu; text-align:left; text-indent:0; text-transform:none;  line-height:normal; letter-spacing:normal; word-spacing:normal;  word-wrap:normal; white-space:nowrap; float:none; z-index:201;  border-radius: 5px;                     /* Opera 10.5 and IE9 */  -webkit-border-radius: 5px;             /* Safari and Chrome */  -moz-border-radius: 5px;                /* Firefox */  -khtml-border-radius: 5px;              /* Konqueror */  box-shadow:0px 10px 20px #808080;         /* Opera 10.5 and IE9 */  -webkit-box-shadow:0px 10px 20px #808080; /* Safari 3 & Chrome */  -moz-box-shadow:0px 10px 20px #808080;    /* Forefox 3.5 */  -khtml-box-shadow:0px 10px 20px #808080;  /* Konqueror */}
+.CtxtMenu_MenuItem {  padding: 1px 2em;  background:transparent;}
+.CtxtMenu_MenuArrow {  position:absolute; right:.5em; padding-top:.25em; color:#666666;  font-family: null; font-size: .75em}
+.CtxtMenu_MenuActive .CtxtMenu_MenuArrow {color:white}
+.CtxtMenu_MenuArrow.CtxtMenu_RTL {left:.5em; right:auto}
+.CtxtMenu_MenuCheck {  position:absolute; left:.7em;  font-family: null}
+.CtxtMenu_MenuCheck.CtxtMenu_RTL { right:.7em; left:auto }
+.CtxtMenu_MenuRadioCheck {  position:absolute; left: .7em;}
+.CtxtMenu_MenuRadioCheck.CtxtMenu_RTL {  right: .7em; left:auto}
+.CtxtMenu_MenuInputBox {  padding-left: 1em; right:.5em; color:#666666;  font-family: null;}
+.CtxtMenu_MenuInputBox.CtxtMenu_RTL {  left: .1em;}
+.CtxtMenu_MenuComboBox {  left:.1em; padding-bottom:.5em;}
+.CtxtMenu_MenuSlider {  left: .1em;}
+.CtxtMenu_SliderValue {  position:absolute; right:.1em; padding-top:.25em; color:#333333;  font-size: .75em}
+.CtxtMenu_SliderBar {  outline: none; background: #d3d3d3}
+.CtxtMenu_MenuLabel {  padding: 1px 2em 3px 1.33em;  font-style:italic}
+.CtxtMenu_MenuRule {  border-top: 1px solid #DDDDDD;  margin: 4px 3px;}
+.CtxtMenu_MenuDisabled {  color:GrayText}
+.CtxtMenu_MenuActive {  background-color: #606872;  color: white;}
+.CtxtMenu_MenuDisabled:focus {  background-color: #E8E8E8}
+.CtxtMenu_MenuLabel:focus {  background-color: #E8E8E8}
+.CtxtMenu_ContextMenu:focus {  outline:none}
+.CtxtMenu_ContextMenu .CtxtMenu_MenuItem:focus {  outline:none}
+.CtxtMenu_SelectionMenu {  position:relative; float:left;  border-bottom: none; -webkit-box-shadow:none; -webkit-border-radius:0px; }
+.CtxtMenu_SelectionItem {  padding-right: 1em;}
+.CtxtMenu_Selection {  right: 40%; width:50%; }
+.CtxtMenu_SelectionBox {  padding: 0em; max-height:20em; max-width: none;  background-color:#FFFFFF;}
+.CtxtMenu_SelectionDivider {  clear: both; border-top: 2px solid #000000;}
+.CtxtMenu_Menu .CtxtMenu_MenuClose {  top:-10px; left:-10px}
+</style><style id="MJX-CHTML-styles">
+mjx-container[jax="CHTML"] {
+  line-height: 0;
+}
+
+mjx-container [space="1"] {
+  margin-left: .111em;
+}
+
+mjx-container [space="2"] {
+  margin-left: .167em;
+}
+
+mjx-container [space="3"] {
+  margin-left: .222em;
+}
+
+mjx-container [space="4"] {
+  margin-left: .278em;
+}
+
+mjx-container [space="5"] {
+  margin-left: .333em;
+}
+
+mjx-container [rspace="1"] {
+  margin-right: .111em;
+}
+
+mjx-container [rspace="2"] {
+  margin-right: .167em;
+}
+
+mjx-container [rspace="3"] {
+  margin-right: .222em;
+}
+
+mjx-container [rspace="4"] {
+  margin-right: .278em;
+}
+
+mjx-container [rspace="5"] {
+  margin-right: .333em;
+}
+
+mjx-container [size="s"] {
+  font-size: 70.7%;
+}
+
+mjx-container [size="ss"] {
+  font-size: 50%;
+}
+
+mjx-container [size="Tn"] {
+  font-size: 60%;
+}
+
+mjx-container [size="sm"] {
+  font-size: 85%;
+}
+
+mjx-container [size="lg"] {
+  font-size: 120%;
+}
+
+mjx-container [size="Lg"] {
+  font-size: 144%;
+}
+
+mjx-container [size="LG"] {
+  font-size: 173%;
+}
+
+mjx-container [size="hg"] {
+  font-size: 207%;
+}
+
+mjx-container [size="HG"] {
+  font-size: 249%;
+}
+
+mjx-container [width="full"] {
+  width: 100%;
+}
+
+mjx-box {
+  display: inline-block;
+}
+
+mjx-block {
+  display: block;
+}
+
+mjx-itable {
+  display: inline-table;
+}
+
+mjx-row {
+  display: table-row;
+}
+
+mjx-row > * {
+  display: table-cell;
+}
+
+mjx-mtext {
+  display: inline-block;
+}
+
+mjx-mstyle {
+  display: inline-block;
+}
+
+mjx-merror {
+  display: inline-block;
+  color: red;
+  background-color: yellow;
+}
+
+mjx-mphantom {
+  visibility: hidden;
+}
+
+_::-webkit-full-page-media, _:future, :root mjx-container {
+  will-change: opacity;
+}
+
+mjx-assistive-mml {
+  position: absolute !important;
+  top: 0px;
+  left: 0px;
+  clip: rect(1px, 1px, 1px, 1px);
+  padding: 1px 0px 0px 0px !important;
+  border: 0px !important;
+  display: block !important;
+  width: auto !important;
+  overflow: hidden !important;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+mjx-assistive-mml[display="block"] {
+  width: 100% !important;
+}
+
+mjx-c::before {
+  display: block;
+  width: 0;
+}
+
+.MJX-TEX {
+  font-family: MJXZERO, MJXTEX;
+}
+
+.TEX-B {
+  font-family: MJXZERO, MJXTEX-B;
+}
+
+.TEX-I {
+  font-family: MJXZERO, MJXTEX-I;
+}
+
+.TEX-MI {
+  font-family: MJXZERO, MJXTEX-MI;
+}
+
+.TEX-BI {
+  font-family: MJXZERO, MJXTEX-BI;
+}
+
+.TEX-S1 {
+  font-family: MJXZERO, MJXTEX-S1;
+}
+
+.TEX-S2 {
+  font-family: MJXZERO, MJXTEX-S2;
+}
+
+.TEX-S3 {
+  font-family: MJXZERO, MJXTEX-S3;
+}
+
+.TEX-S4 {
+  font-family: MJXZERO, MJXTEX-S4;
+}
+
+.TEX-A {
+  font-family: MJXZERO, MJXTEX-A;
+}
+
+.TEX-C {
+  font-family: MJXZERO, MJXTEX-C;
+}
+
+.TEX-CB {
+  font-family: MJXZERO, MJXTEX-CB;
+}
+
+.TEX-FR {
+  font-family: MJXZERO, MJXTEX-FR;
+}
+
+.TEX-FRB {
+  font-family: MJXZERO, MJXTEX-FRB;
+}
+
+.TEX-SS {
+  font-family: MJXZERO, MJXTEX-SS;
+}
+
+.TEX-SSB {
+  font-family: MJXZERO, MJXTEX-SSB;
+}
+
+.TEX-SSI {
+  font-family: MJXZERO, MJXTEX-SSI;
+}
+
+.TEX-SC {
+  font-family: MJXZERO, MJXTEX-SC;
+}
+
+.TEX-T {
+  font-family: MJXZERO, MJXTEX-T;
+}
+
+.TEX-V {
+  font-family: MJXZERO, MJXTEX-V;
+}
+
+.TEX-VB {
+  font-family: MJXZERO, MJXTEX-VB;
+}
+
+mjx-stretchy-v mjx-c, mjx-stretchy-h mjx-c {
+  font-family: MJXZERO, MJXTEX-S1, MJXTEX-S4, MJXTEX, MJXTEX-A ! important;
+}
+
+@font-face /* 0 */ {
+  font-family: MJXZERO;
+  src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Zero.woff") format("woff");
+}
+
+@font-face /* 1 */ {
+  font-family: MJXTEX;
+  src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Main-Regular.woff") format("woff");
+}
+
+@font-face /* 2 */ {
+  font-family: MJXTEX-B;
+  src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Main-Bold.woff") format("woff");
+}
+
+@font-face /* 3 */ {
+  font-family: MJXTEX-I;
+  src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Math-Italic.woff") format("woff");
+}
+
+@font-face /* 4 */ {
+  font-family: MJXTEX-MI;
+  src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Main-Italic.woff") format("woff");
+}
+
+@font-face /* 5 */ {
+  font-family: MJXTEX-BI;
+  src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Math-BoldItalic.woff") format("woff");
+}
+
+@font-face /* 6 */ {
+  font-family: MJXTEX-S1;
+  src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Size1-Regular.woff") format("woff");
+}
+
+@font-face /* 7 */ {
+  font-family: MJXTEX-S2;
+  src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Size2-Regular.woff") format("woff");
+}
+
+@font-face /* 8 */ {
+  font-family: MJXTEX-S3;
+  src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Size3-Regular.woff") format("woff");
+}
+
+@font-face /* 9 */ {
+  font-family: MJXTEX-S4;
+  src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Size4-Regular.woff") format("woff");
+}
+
+@font-face /* 10 */ {
+  font-family: MJXTEX-A;
+  src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_AMS-Regular.woff") format("woff");
+}
+
+@font-face /* 11 */ {
+  font-family: MJXTEX-C;
+  src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Calligraphic-Regular.woff") format("woff");
+}
+
+@font-face /* 12 */ {
+  font-family: MJXTEX-CB;
+  src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Calligraphic-Bold.woff") format("woff");
+}
+
+@font-face /* 13 */ {
+  font-family: MJXTEX-FR;
+  src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Fraktur-Regular.woff") format("woff");
+}
+
+@font-face /* 14 */ {
+  font-family: MJXTEX-FRB;
+  src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Fraktur-Bold.woff") format("woff");
+}
+
+@font-face /* 15 */ {
+  font-family: MJXTEX-SS;
+  src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_SansSerif-Regular.woff") format("woff");
+}
+
+@font-face /* 16 */ {
+  font-family: MJXTEX-SSB;
+  src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_SansSerif-Bold.woff") format("woff");
+}
+
+@font-face /* 17 */ {
+  font-family: MJXTEX-SSI;
+  src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_SansSerif-Italic.woff") format("woff");
+}
+
+@font-face /* 18 */ {
+  font-family: MJXTEX-SC;
+  src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Script-Regular.woff") format("woff");
+}
+
+@font-face /* 19 */ {
+  font-family: MJXTEX-T;
+  src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Typewriter-Regular.woff") format("woff");
+}
+
+@font-face /* 20 */ {
+  font-family: MJXTEX-V;
+  src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Vector-Regular.woff") format("woff");
+}
+
+@font-face /* 21 */ {
+  font-family: MJXTEX-VB;
+  src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Vector-Bold.woff") format("woff");
+}
+</style><style type="text/css">.output_f4ec05424d9d4c9285d557620aa65b66 .sagecell_messages, .output_f4ec05424d9d4c9285d557620aa65b66 .sagecell_permalink {display: none;}</style><style type="text/css">.output_a6ae940fb3a140c2853294c46bb9f87a .sagecell_messages, .output_a6ae940fb3a140c2853294c46bb9f87a .sagecell_permalink {display: none;}</style><style type="text/css">.output_74fbf3a6ab0c4087952ac795e5444535 .sagecell_messages, .output_74fbf3a6ab0c4087952ac795e5444535 .sagecell_permalink {display: none;}</style><style type="text/css">.output_09667ce95c2c40f5832b601f126568e0 .sagecell_messages, .output_09667ce95c2c40f5832b601f126568e0 .sagecell_permalink {display: none;}</style><style type="text/css">.output_513f8513516440f2ac387fbfc5958e0c .sagecell_messages, .output_513f8513516440f2ac387fbfc5958e0c .sagecell_permalink {display: none;}</style><style type="text/css">.output_2be2f461d8fd417f899aec35b682042e .sagecell_messages, .output_2be2f461d8fd417f899aec35b682042e .sagecell_permalink {display: none;}</style><style type="text/css">.output_5a0d0407e73a4be0a2b00cba3456d302 .sagecell_messages, .output_5a0d0407e73a4be0a2b00cba3456d302 .sagecell_permalink {display: none;}</style><style type="text/css">.output_6952f76cd2ae457182be056804751c15 .sagecell_messages, .output_6952f76cd2ae457182be056804751c15 .sagecell_permalink {display: none;}</style><style type="text/css">.output_b9a24a4c4b744a7c8cf4037bf410aa0b .sagecell_messages, .output_b9a24a4c4b744a7c8cf4037bf410aa0b .sagecell_permalink {display: none;}</style><style type="text/css">.output_e32c9fd488f8413d83b4c93bee395e2f .sagecell_messages, .output_e32c9fd488f8413d83b4c93bee395e2f .sagecell_permalink {display: none;}</style></head>
+<body>
+<div id="main">
+            
+            
+            
+            <div id="notebook-holder"><div class="nb-notebook"><div class="nb-worksheet"><div class="nb-cell nb-markdown-cell"><p>Given an orthonormal basis <span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="script">B</mi><mo>=</mo><mo stretchy="false">{</mo><msub><mi mathvariant="script">u</mi><mn mathvariant="script">1</mn></msub><mo separator="true">,</mo><mo>…</mo><mo separator="true">,</mo><msub><mi mathvariant="script">u</mi><mi mathvariant="script">k</mi></msub><mo stretchy="false">}</mo></mrow><annotation encoding="application/x-tex">\cal B={u_1,\ldots,u_k}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 1em; vertical-align: -0.25em;"></span><span class="mord"><span class="mord mathcal" style="margin-right: 0.03041em;">B</span><span class="mspace" style="margin-right: 0.277778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right: 0.277778em;"></span><span class="mopen">{</span><span class="mord"><span class="mord mathnormal">u</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.301108em;"><span class="" style="top: -2.55em; margin-left: 0em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right: 0.166667em;"></span><span class="minner">…</span><span class="mspace" style="margin-right: 0.166667em;"></span><span class="mpunct">,</span><span class="mspace" style="margin-right: 0.166667em;"></span><span class="mord"><span class="mord mathnormal">u</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.336108em;"><span class="" style="top: -2.55em; margin-left: 0em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right: 0.03148em;">k</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span><span class="mclose">}</span></span></span></span></span></span> for a subspace <span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>U</mi><mo>⊆</mo><mi>V</mi></mrow><annotation encoding="application/x-tex">U\subseteq V</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.8193em; vertical-align: -0.13597em;"></span><span class="mord mathnormal" style="margin-right: 0.10903em;">U</span><span class="mspace" style="margin-right: 0.277778em;"></span><span class="mrel">⊆</span><span class="mspace" style="margin-right: 0.277778em;"></span></span><span class="base"><span class="strut" style="height: 0.68333em; vertical-align: 0em;"></span><span class="mord mathnormal" style="margin-right: 0.22222em;">V</span></span></span></span></span>, we define the projection of <span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>v</mi><mo>∈</mo><mi>V</mi></mrow><annotation encoding="application/x-tex">v\in V</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.5782em; vertical-align: -0.0391em;"></span><span class="mord mathnormal" style="margin-right: 0.03588em;">v</span><span class="mspace" style="margin-right: 0.277778em;"></span><span class="mrel">∈</span><span class="mspace" style="margin-right: 0.277778em;"></span></span><span class="base"><span class="strut" style="height: 0.68333em; vertical-align: 0em;"></span><span class="mord mathnormal" style="margin-right: 0.22222em;">V</span></span></span></span></span> onto <span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>U</mi></mrow><annotation encoding="application/x-tex">U</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.68333em; vertical-align: 0em;"></span><span class="mord mathnormal" style="margin-right: 0.10903em;">U</span></span></span></span></span> by
+<span><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mtext>proj</mtext><mi>U</mi></msub><mo stretchy="false">(</mo><mi>v</mi><mo stretchy="false">)</mo><mo>=</mo><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>k</mi></munderover><mo stretchy="false">⟨</mo><mi>v</mi><mo separator="true">,</mo><msub><mi>u</mi><mi>i</mi></msub><mo stretchy="false">⟩</mo><msub><mi>u</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">
+\text{proj}</annotation></semantics></math><em>U(v)=\sum</em>{i=1}^k\langle v,u_i\rangle u_i
+</span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 1em; vertical-align: -0.25em;"></span><span class="mord"><span class="mord text"><span class="mord">proj</span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.234191em;"><span class="" style="top: -2.45586em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right: 0.10903em;">U</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.24414em;"><span class=""></span></span></span></span></span></span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right: 0.03588em;">v</span><span class="mclose">)</span><span class="mspace" style="margin-right: 0.277778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right: 0.277778em;"></span></span><span class="base"><span class="strut" style="height: 3.11378em; vertical-align: -1.27767em;"></span><span class="mop op-limits"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 1.83611em;"><span class="" style="top: -1.87233em; margin-left: 0em;"><span class="pstrut" style="height: 3.05em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">i</span><span class="mrel mtight">=</span><span class="mord mtight">1</span></span></span></span><span class="" style="top: -3.05001em;"><span class="pstrut" style="height: 3.05em;"></span><span class=""><span class="mop op-symbol large-op">∑</span></span></span><span class="" style="top: -4.30001em; margin-left: 0em;"><span class="pstrut" style="height: 3.05em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right: 0.03148em;">k</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 1.27767em;"><span class=""></span></span></span></span></span><span class="mopen">⟨</span><span class="mord mathnormal" style="margin-right: 0.03588em;">v</span><span class="mpunct">,</span><span class="mspace" style="margin-right: 0.166667em;"></span><span class="mord"><span class="mord mathnormal">u</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.311664em;"><span class="" style="top: -2.55em; margin-left: 0em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span><span class="mclose">⟩</span><span class="mord"><span class="mord mathnormal">u</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.311664em;"><span class="" style="top: -2.55em; margin-left: 0em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span></span></span></span></span></span></p>
+</div><div class="nb-cell nb-code-cell"><div class="nb-input" data-prompt-number="1" style="display: none;"><pre class=" language-sagemath"><code class=" language-sagemath" data-language="sagemath">def proj(C, ip, v):
+    '''
+    The assumption is that the basis C is orthonormal.
+    '''
+    return sum([ip(v,u)*u for u in C])</code></pre></div>
+  <div class="compute sagecell output_f4ec05424d9d4c9285d557620aa65b66" style="display: none;">
+
+<div class="sagecell-templates hide"></div>
+<div class="sagecell_output_elements" style="display: none;">
+    
+    <div class="sagecell_messages">
+        <hr>
+        <span style="font-size: large; font-weight: bold">Messages</span>
+        <br><br>
+    </div>
+</div></div>
+  <div class="compute" style="display: none;">
+    <script type="text/x-sage">def proj(C, ip, v):
+    '''
+    The assumption is that the basis C is orthonormal.
+    '''
+    return sum([ip(v,u)*u for u in C])
+</script>
+  </div></div><div class="nb-cell nb-markdown-cell"><p>Gram-Schmidt is then easily implemented recursively by successively projecting the next vector in a set onto the span of the previous vectors and normalizing the part left over.</p>
+<p>Note in the following adding extra vectors does not prevent this from working correctly. The result of GS will be an orthonormal basis.</p>
+</div><div class="nb-cell nb-code-cell"><div class="nb-input" data-prompt-number="2" style="display: none;"><pre class=" language-sagemath"><code class=" language-sagemath" data-language="sagemath">def GS(B, ip):
+    if len(B) == 1:
+        b = B[0]
+        return [b/sqrt(ip(b,b))]
+    else:
+        C = GS(B[:-1], ip)
+        b = B[-1] - proj(C, ip, B[-1])
+        if ip(b,b) != 0:
+            return C + [b/sqrt(ip(b,b))]
+        return C</code></pre></div>
+  <div class="compute sagecell output_a6ae940fb3a140c2853294c46bb9f87a" style="display: none;">
+
+<div class="sagecell-templates hide"></div>
+<div class="sagecell_output_elements" style="display: none;">
+    
+    <div class="sagecell_messages">
+        <hr>
+        <span style="font-size: large; font-weight: bold">Messages</span>
+        <br><br>
+    </div>
+</div></div>
+  <div class="compute" style="display: none;">
+    <script type="text/x-sage">def GS(B, ip):
+    if len(B) == 1:
+        b = B[0]
+        return [b/sqrt(ip(b,b))]
+    else:
+        C = GS(B[:-1], ip)
+        b = B[-1] - proj(C, ip, B[-1])
+        if ip(b,b) != 0:
+            return C + [b/sqrt(ip(b,b))]
+        return C
+</script>
+  </div></div><div class="nb-cell nb-code-cell"><div class="nb-input" data-prompt-number="3" style="display: none;"><pre class=" language-sagemath"><code class=" language-sagemath" data-language="sagemath">C = GS([1, x, x^2, x^3], lambda u, v: integral(u*v, x, 0, 1))</code></pre></div>
+  <div class="compute sagecell output_74fbf3a6ab0c4087952ac795e5444535" style="display: none;">
+
+<div class="sagecell-templates hide"></div>
+<div class="sagecell_output_elements" style="display: none;">
+    
+    <div class="sagecell_messages">
+        <hr>
+        <span style="font-size: large; font-weight: bold">Messages</span>
+        <br><br>
+    </div>
+</div></div>
+  <div class="compute" style="display: none;">
+    <script type="text/x-sage">C = GS([1, x, x^2, x^3], lambda u, v: integral(u*v, x, 0, 1))
+</script>
+  </div></div><div class="nb-cell nb-code-cell"><div class="nb-input" data-prompt-number="13" style="display: none;"><pre class=" language-sagemath"><code class=" language-sagemath" data-language="sagemath"># Plot the basis functions
+text = ""
+G = Graphics()
+for i in range(len(C)):
+    text += "$q_%d = %s$&lt;br&gt;"%(i,latex(C[i].simplify_full()))
+    G += plot(C[i],(0,1),legend_label="$q_%d$"%i, rgbcolor=[random() for i in range(3)], linestyle=":")
+
+# Choose a function to approximate
+h = x^(1/3)
+hat_h = proj(C, lambda u, v: integral(u*v, x, 0, 1), h)
+
+# Add the plots of the function to project and its projection
+G += plot(h,(0,1),legend_label="$h$", color="red",linestyle="--")
+G += plot(hat_h,(0,1),legend_label="$\\hat h$", color="red",fill=h)
+text += "$h = %s$&lt;br&gt;"%(latex(h))
+text += "$\\hat h = %s$&lt;br&gt;"%(latex(hat_h.simplify_full()))
+
+# Display the plot
+G.show(aspect_ratio=0.3)
+html(text)</code></pre></div><div class="nb-output" data-prompt-number="13" style="display: none;"><img class="nb-image-output" src="data:image/png;base64,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"></div><div class="nb-output" data-prompt-number="13" style="display: none;"><div class="nb-html-output">\(q_0 = 1\)<br>\(q_1 = 2 \, \sqrt{3} x - \sqrt{3}\)<br>\(q_2 = 6 \, \sqrt{5} x^{2} - 6 \, \sqrt{5} x + \sqrt{5}\)<br>\(q_3 = 20 \, \sqrt{7} x^{3} - 30 \, \sqrt{7} x^{2} + 12 \, \sqrt{7} x - \sqrt{7}\)<br>\(h = x^{\frac{1}{3}}\)<br>\(\hat h = \frac{15}{13} \, x^{3} - \frac{216}{91} \, x^{2} + \frac{180}{91} \, x + \frac{24}{91}\)<br></div></div>
+  <div class="compute sagecell output_09667ce95c2c40f5832b601f126568e0" style="display: none;">
+
+<div class="sagecell-templates hide"></div>
+<div class="sagecell_output_elements" style="display: none;">
+    
+    <div class="sagecell_messages">
+        <hr>
+        <span style="font-size: large; font-weight: bold">Messages</span>
+        <br><br>
+    </div>
+</div></div>
+  <div class="compute" style="display: none;">
+    <script type="text/x-sage"># Plot the basis functions
+text = ""
+G = Graphics()
+for i in range(len(C)):
+    text += "$q_%d = %s$<br>"%(i,latex(C[i].simplify_full()))
+    G += plot(C[i],(0,1),legend_label="$q_%d$"%i, rgbcolor=[random() for i in range(3)], linestyle=":")
+
+# Choose a function to approximate
+h = x^(1/3)
+hat_h = proj(C, lambda u, v: integral(u*v, x, 0, 1), h)
+
+# Add the plots of the function to project and its projection
+G += plot(h,(0,1),legend_label="$h$", color="red",linestyle="--")
+G += plot(hat_h,(0,1),legend_label="$\\hat h$", color="red",fill=h)
+text += "$h = %s$<br>"%(latex(h))
+text += "$\\hat h = %s$<br>"%(latex(hat_h.simplify_full()))
+
+# Display the plot
+G.show(aspect_ratio=0.3)
+html(text)
+</script>
+  </div></div><div class="nb-cell nb-markdown-cell"><p>Given a basis <span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="script">B</mi><mo>=</mo><mo stretchy="false">{</mo><msub><mi mathvariant="script">u</mi><mn mathvariant="script">1</mn></msub><mo separator="true">,</mo><mo>…</mo><mo separator="true">,</mo><msub><mi mathvariant="script">u</mi><mi mathvariant="script">n</mi></msub><mo stretchy="false">}</mo></mrow><annotation encoding="application/x-tex">\cal B={u_1,\ldots,u_n}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 1em; vertical-align: -0.25em;"></span><span class="mord"><span class="mord mathcal" style="margin-right: 0.03041em;">B</span><span class="mspace" style="margin-right: 0.277778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right: 0.277778em;"></span><span class="mopen">{</span><span class="mord"><span class="mord mathnormal">u</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.301108em;"><span class="" style="top: -2.55em; margin-left: 0em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right: 0.166667em;"></span><span class="minner">…</span><span class="mspace" style="margin-right: 0.166667em;"></span><span class="mpunct">,</span><span class="mspace" style="margin-right: 0.166667em;"></span><span class="mord"><span class="mord mathnormal">u</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.151392em;"><span class="" style="top: -2.55em; margin-left: 0em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">n</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span><span class="mclose">}</span></span></span></span></span></span> and an inner product <span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false">⟨</mo><mi>u</mi><mo separator="true">,</mo><mi>v</mi><mo stretchy="false">⟩</mo></mrow><annotation encoding="application/x-tex">\langle u,v\rangle</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 1em; vertical-align: -0.25em;"></span><span class="mopen">⟨</span><span class="mord mathnormal">u</span><span class="mpunct">,</span><span class="mspace" style="margin-right: 0.166667em;"></span><span class="mord mathnormal" style="margin-right: 0.03588em;">v</span><span class="mclose">⟩</span></span></span></span></span> we see that if <span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false">[</mo><mi>u</mi><msub><mo stretchy="false">]</mo><mi mathvariant="script">B</mi></msub><mo>=</mo><mo stretchy="false">(</mo><msub><mi>α</mi><mn>1</mn></msub><mo separator="true">,</mo><mo>…</mo><mo separator="true">,</mo><msub><mi>α</mi><mi>n</mi></msub><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">[u]</annotation></semantics></math><em>{\cal B}=(\alpha_1,\ldots,\alpha_n)</em></span><em><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 1em; vertical-align: -0.25em;"></span><span class="mopen">[</span><span class="mord mathnormal">u</span><span class="mclose"><span class="mclose">]</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.328331em;"><span class="" style="top: -2.55em; margin-left: 0em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathcal mtight" style="margin-right: 0.03041em;">B</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span><span class="mspace" style="margin-right: 0.277778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right: 0.277778em;"></span></span><span class="base"><span class="strut" style="height: 1em; vertical-align: -0.25em;"></span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal" style="margin-right: 0.0037em;">α</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.301108em;"><span class="" style="top: -2.55em; margin-left: -0.0037em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right: 0.166667em;"></span><span class="minner">…</span><span class="mspace" style="margin-right: 0.166667em;"></span><span class="mpunct">,</span><span class="mspace" style="margin-right: 0.166667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right: 0.0037em;">α</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.151392em;"><span class="" style="top: -2.55em; margin-left: -0.0037em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">n</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span><span class="mclose">)</span></span></span></em></span></span><em> and <span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false">[</mo><mi>v</mi><msub><mo stretchy="false">]</mo><mi mathvariant="script">B</mi></msub><mo>=</mo><mo stretchy="false">(</mo><msub><mi>β</mi><mn>1</mn></msub><mo separator="true">,</mo><mo>…</mo><mo separator="true">,</mo><msub><mi>β</mi><mi>n</mi></msub><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">[v]</annotation></semantics></math></span></span></span></em>{\cal B}=(\beta_1,\ldots,\beta_n)<span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 1em; vertical-align: -0.25em;"></span><span class="mopen">[</span><span class="mord mathnormal" style="margin-right: 0.03588em;">v</span><span class="mclose"><span class="mclose">]</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.328331em;"><span class="" style="top: -2.55em; margin-left: 0em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathcal mtight" style="margin-right: 0.03041em;">B</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span><span class="mspace" style="margin-right: 0.277778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right: 0.277778em;"></span></span><span class="base"><span class="strut" style="height: 1em; vertical-align: -0.25em;"></span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal" style="margin-right: 0.05278em;">β</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.301108em;"><span class="" style="top: -2.55em; margin-left: -0.05278em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right: 0.166667em;"></span><span class="minner">…</span><span class="mspace" style="margin-right: 0.166667em;"></span><span class="mpunct">,</span><span class="mspace" style="margin-right: 0.166667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right: 0.05278em;">β</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.151392em;"><span class="" style="top: -2.55em; margin-left: -0.05278em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">n</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span><span class="mclose">)</span></span></span>, then
+<span><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mo stretchy="false">⟨</mo><mi>u</mi><mo separator="true">,</mo><mi>v</mi><mo stretchy="false">⟩</mo><mo>=</mo><mo stretchy="false">[</mo><mi>v</mi><msubsup><mo stretchy="false">]</mo><mi mathvariant="script">B</mi><mi>T</mi></msubsup><mi>A</mi><mo stretchy="false">[</mo><mi>u</mi><msub><mo stretchy="false">]</mo><mi mathvariant="script">B</mi></msub></mrow><annotation encoding="application/x-tex">\langle u,v\rangle=[v]</annotation></semantics></math><em>{\cal B}^TA[u]</em>{\cal B}</span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 1em; vertical-align: -0.25em;"></span><span class="mopen">⟨</span><span class="mord mathnormal">u</span><span class="mpunct">,</span><span class="mspace" style="margin-right: 0.166667em;"></span><span class="mord mathnormal" style="margin-right: 0.03588em;">v</span><span class="mclose">⟩</span><span class="mspace" style="margin-right: 0.277778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right: 0.277778em;"></span></span><span class="base"><span class="strut" style="height: 1.14133em; vertical-align: -0.25em;"></span><span class="mopen">[</span><span class="mord mathnormal" style="margin-right: 0.03588em;">v</span><span class="mclose"><span class="mclose">]</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.891331em;"><span class="" style="top: -2.453em; margin-left: 0em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathcal mtight" style="margin-right: 0.03041em;">B</span></span></span></span></span><span class="" style="top: -3.113em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right: 0.13889em;">T</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.247em;"><span class=""></span></span></span></span></span></span><span class="mord mathnormal">A</span><span class="mopen">[</span><span class="mord mathnormal">u</span><span class="mclose"><span class="mclose">]</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.328331em;"><span class="" style="top: -2.55em; margin-left: 0em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathcal mtight" style="margin-right: 0.03041em;">B</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span></span></span></span></span></span>
+where
+<span><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi>A</mi><mrow><mi>i</mi><mo separator="true">,</mo><mi>j</mi></mrow></msub><mo>=</mo><mo stretchy="false">⟨</mo><msub><mi>u</mi><mi>j</mi></msub><mo separator="true">,</mo><msub><mi>u</mi><mi>i</mi></msub><mo stretchy="false">⟩</mo></mrow><annotation encoding="application/x-tex">A_{i,j}=\langle u_j,u_i\rangle</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.969438em; vertical-align: -0.286108em;"></span><span class="mord"><span class="mord mathnormal">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.311664em;"><span class="" style="top: -2.55em; margin-left: 0em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">i</span><span class="mpunct mtight">,</span><span class="mord mathnormal mtight" style="margin-right: 0.05724em;">j</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.286108em;"><span class=""></span></span></span></span></span></span><span class="mspace" style="margin-right: 0.277778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right: 0.277778em;"></span></span><span class="base"><span class="strut" style="height: 1.03611em; vertical-align: -0.286108em;"></span><span class="mopen">⟨</span><span class="mord"><span class="mord mathnormal">u</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.311664em;"><span class="" style="top: -2.55em; margin-left: 0em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right: 0.05724em;">j</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.286108em;"><span class=""></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right: 0.166667em;"></span><span class="mord"><span class="mord mathnormal">u</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height: 0.311664em;"><span class="" style="top: -2.55em; margin-left: 0em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height: 0.15em;"><span class=""></span></span></span></span></span></span><span class="mclose">⟩</span></span></span></span></span></span></p>
+</div><div class="nb-cell nb-code-cell"><div class="nb-input" data-prompt-number="16" style="display: none;"><pre class=" language-sagemath"><code class=" language-sagemath" data-language="sagemath">B = [x^i for i in range(4)] + [h]
+show(B)</code></pre></div><div class="nb-output" data-prompt-number="16" style="display: none;"><div class="nb-html-output">\(\displaystyle \left[1, x, x^{2}, x^{3}, x^{\frac{1}{3}}\right]\)</div></div>
+  <div class="compute sagecell output_513f8513516440f2ac387fbfc5958e0c" style="display: none;">
+
+<div class="sagecell-templates hide"></div>
+<div class="sagecell_output_elements" style="display: none;">
+    
+    <div class="sagecell_messages">
+        <hr>
+        <span style="font-size: large; font-weight: bold">Messages</span>
+        <br><br>
+    </div>
+</div></div>
+  <div class="compute" style="display: none;">
+    <script type="text/x-sage">B = [x^i for i in range(4)] + [h]
+show(B)
+</script>
+  </div></div><div class="nb-cell nb-code-cell"><div class="nb-input" data-prompt-number="17" style="display: none;"><pre class=" language-sagemath"><code class=" language-sagemath" data-language="sagemath">A = matrix([[integral(B[i]*B[j],x, 0, 1) for j in range(5)] for i in range(5)])
+show(A)</code></pre></div><div class="nb-output" data-prompt-number="17" style="display: none;"><div class="nb-html-output">\(\displaystyle \left(\begin{array}{rrrrr}
+1 &amp; \frac{1}{2} &amp; \frac{1}{3} &amp; \frac{1}{4} &amp; \frac{3}{4} \\
+\frac{1}{2} &amp; \frac{1}{3} &amp; \frac{1}{4} &amp; \frac{1}{5} &amp; \frac{3}{7} \\
+\frac{1}{3} &amp; \frac{1}{4} &amp; \frac{1}{5} &amp; \frac{1}{6} &amp; \frac{3}{10} \\
+\frac{1}{4} &amp; \frac{1}{5} &amp; \frac{1}{6} &amp; \frac{1}{7} &amp; \frac{3}{13} \\
+\frac{3}{4} &amp; \frac{3}{7} &amp; \frac{3}{10} &amp; \frac{3}{13} &amp; \frac{3}{5}
+\end{array}\right)\)</div></div>
+  <div class="compute sagecell output_2be2f461d8fd417f899aec35b682042e" style="display: none;">
+
+<div class="sagecell-templates hide"></div>
+<div class="sagecell_output_elements" style="display: none;">
+    
+    <div class="sagecell_messages">
+        <hr>
+        <span style="font-size: large; font-weight: bold">Messages</span>
+        <br><br>
+    </div>
+</div></div>
+  <div class="compute" style="display: none;">
+    <script type="text/x-sage">A = matrix([[integral(B[i]*B[j],x, 0, 1) for j in range(5)] for i in range(5)])
+show(A)
+</script>
+  </div></div><div class="nb-cell nb-code-cell"><div class="nb-input" data-prompt-number="18" style="display: none;"><pre class=" language-sagemath"><code class=" language-sagemath" data-language="sagemath">D = GS(list(matrix.identity(5)), lambda u, v: v*A*u)</code></pre></div>
+  <div class="compute sagecell output_5a0d0407e73a4be0a2b00cba3456d302" style="display: none;">
+
+<div class="sagecell-templates hide"></div>
+<div class="sagecell_output_elements" style="display: none;">
+    
+    <div class="sagecell_messages">
+        <hr>
+        <span style="font-size: large; font-weight: bold">Messages</span>
+        <br><br>
+    </div>
+</div></div>
+  <div class="compute" style="display: none;">
+    <script type="text/x-sage">D = GS(list(matrix.identity(5)), lambda u, v: v*A*u)
+</script>
+  </div></div><div class="nb-cell nb-code-cell"><div class="nb-input" data-prompt-number="19" style="display: none;"><pre class=" language-sagemath"><code class=" language-sagemath" data-language="sagemath">for b in D:
+    show(b.simplify_full())</code></pre></div><div class="nb-output" data-prompt-number="19" style="display: none;"><div class="nb-html-output">\(\displaystyle \left(1,\,0,\,0,\,0,\,0\right)\)</div></div><div class="nb-output" data-prompt-number="19" style="display: none;"><div class="nb-html-output">\(\displaystyle \left(-\sqrt{3},\,2 \, \sqrt{3},\,0,\,0,\,0\right)\)</div></div><div class="nb-output" data-prompt-number="19" style="display: none;"><div class="nb-html-output">\(\displaystyle \left(\sqrt{5},\,-6 \, \sqrt{5},\,6 \, \sqrt{5},\,0,\,0\right)\)</div></div><div class="nb-output" data-prompt-number="19" style="display: none;"><div class="nb-html-output">\(\displaystyle \left(-\sqrt{7},\,12 \, \sqrt{7},\,-30 \, \sqrt{7},\,20 \, \sqrt{7},\,0\right)\)</div></div><div class="nb-output" data-prompt-number="19" style="display: none;"><div class="nb-html-output">\(\displaystyle \left(-4 \, \sqrt{5} \sqrt{3},\,-30 \, \sqrt{5} \sqrt{3},\,36 \, \sqrt{5} \sqrt{3},\,-\frac{35}{2} \, \sqrt{5} \sqrt{3},\,\frac{91}{6} \, \sqrt{5} \sqrt{3}\right)\)</div></div>
+  <div class="compute sagecell output_6952f76cd2ae457182be056804751c15" style="display: none;">
+
+<div class="sagecell-templates hide"></div>
+<div class="sagecell_output_elements" style="display: none;">
+    
+    <div class="sagecell_messages">
+        <hr>
+        <span style="font-size: large; font-weight: bold">Messages</span>
+        <br><br>
+    </div>
+</div></div>
+  <div class="compute" style="display: none;">
+    <script type="text/x-sage">for b in D:
+    show(b.simplify_full())
+</script>
+  </div></div><div class="nb-cell nb-code-cell"><div class="nb-input" data-prompt-number="20" style="display: none;"><pre class=" language-sagemath"><code class=" language-sagemath" data-language="sagemath">hat_h = proj(D[:-1], lambda u, v: v*A*u, vector([0,0,0,0,1]))
+show(hat_h*vector(B))</code></pre></div><div class="nb-output" data-prompt-number="20" style="display: none;"><div class="nb-html-output">\(\displaystyle \frac{15}{13} \, x^{3} - \frac{216}{91} \, x^{2} + \frac{180}{91} \, x + \frac{24}{91}\)</div></div>
+  <div class="compute sagecell output_b9a24a4c4b744a7c8cf4037bf410aa0b" style="display: none;">
+
+<div class="sagecell-templates hide"></div>
+<div class="sagecell_output_elements" style="display: none;">
+    
+    <div class="sagecell_messages">
+        <hr>
+        <span style="font-size: large; font-weight: bold">Messages</span>
+        <br><br>
+    </div>
+</div></div>
+  <div class="compute" style="display: none;">
+    <script type="text/x-sage">hat_h = proj(D[:-1], lambda u, v: v*A*u, vector([0,0,0,0,1]))
+show(hat_h*vector(B))
+</script>
+  </div></div><div class="nb-cell nb-code-cell"><div class="nb-input" data-prompt-number="0" style="display: none;"><pre class=" language-sagemath"><code class=" language-sagemath" data-language="sagemath"></code></pre></div>
+  <div class="compute sagecell output_e32c9fd488f8413d83b4c93bee395e2f" style="display: none;">
+
+<div class="sagecell-templates hide"></div>
+<div class="sagecell_output_elements" style="display: none;">
+    
+    <div class="sagecell_messages">
+        <hr>
+        <span style="font-size: large; font-weight: bold">Messages</span>
+        <br><br>
+    </div>
+</div></div>
+  <div class="compute" style="display: none;">
+    <script type="text/x-sage">
+</script>
+  </div></div></div></div></div>
+
+
+            
+        </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-ygbV9kiqUc6oa4msXn9868pTtWMgiQaeYH7/t7LECLbyPA2x65Kgf80OJFdroafW" crossorigin="anonymous"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="https://sagecell.sagemath.org/embedded_sagecell.js"></script>
+  <script src="https://dahn-research.eu/nbplayer/vendor/js/FileSaver.min.js"></script>
+  <script src="https://dahn-research.eu/nbplayer/nbplayerConfig.js"></script>
+  <script src="https://dahn-research.eu/nbplayer/js/nbrunner.min.js"></script>
+  <script>
+    playerConfig={"panes":"ExecRead","lang":"sage","linked":true,"eval":false,"hide":["fullScreen"],"execute":true,"showRead":true,"collapsable":false,"playerPath":"https://dahn-research.eu/nbplayer","name":"InnerProduct"};
+    playerMode={"showSage":true,"showNotebookInput":true,"showSageInput":true};
+    makeMenu();
+    localize();
+    loadStatus();
+    makeSageCells(playerConfig);
+    launchPlayer();
+  </script>
+  </body></html>
